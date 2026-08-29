@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Learn Mahjong — Hong Kong rules, tile by tile</title>
+<meta name="description" content="An interactive guide to Hong Kong mahjong: every tile, the sets you build, how a round plays, faan scoring, and four practice drills.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%80%84</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Spline+Sans:wght@300..700&family=Noto+Sans+Symbols+2&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4EDDD; --paper-2:#FBF7EC; --line:#DDD1B6;
+  --ink:#14231F; --ink-2:#55655E; --ink-3:#8A968F;
+  --felt:#0C4437; --felt-2:#062B22;
+  --red:#B93B2C; --jade:#1B7A57; --indigo:#2A4C8F; --gold:#A9781F;
+  --zh:"Noto Serif TC","Songti TC","PingFang TC","Microsoft JhengHei",serif;
+  --tiles:"Noto Sans Symbols 2","Apple Symbols","Segoe UI Symbol",sans-serif;
+  --display:"Fraunces",Georgia,serif;
+  --body:"Spline Sans",system-ui,sans-serif;
+  --wrap:min(1080px,100% - 2.5rem);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:4.5rem}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.62 var(--body);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--display);font-variation-settings:'SOFT' 0,'WONK' 1;font-weight:700;line-height:1.05;margin:0}
+p{margin:0 0 1em}
+a{color:inherit}
+.wrap{width:var(--wrap);margin-inline:auto}
+.zh{font-family:var(--zh);font-weight:500}
+
+/* ── nav ─────────────────────────────────────── */
+nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:.35rem;align-items:center;height:3.4rem;overflow-x:auto;scrollbar-width:none}
+nav .wrap::-webkit-scrollbar{display:none}
+nav b{font-family:var(--display);font-size:1.05rem;margin-right:auto;white-space:nowrap;font-variation-settings:'WONK' 1}
+nav a{flex:none;text-decoration:none;font-size:.83rem;letter-spacing:.02em;color:var(--ink-2);padding:.35rem .6rem;border-radius:99px}
+nav a:hover,nav a:focus-visible{color:var(--ink);background:#0000000d}
+
+/* ── tiles ───────────────────────────────────── */
+.tile{font-family:var(--tiles);font-size:var(--ts,4.4rem);line-height:1;display:inline-block;
+  color:var(--ink);filter:drop-shadow(0 2px 2px rgba(6,43,34,.22));transition:transform .18s cubic-bezier(.2,.8,.3,1),filter .18s}
+.ink-jade{color:var(--jade)} .ink-indigo{color:var(--indigo)} .ink-red{color:var(--red)} .ink-gold{color:var(--gold)}
+button.tile{background:none;border:0;padding:0;cursor:pointer}
+.lift:hover,.lift:focus-visible{transform:translateY(-.32rem);filter:drop-shadow(0 8px 8px rgba(6,43,34,.3))}
+.row{display:flex;flex-wrap:wrap;gap:.1rem;align-items:flex-end}
+
+/* ── hero ────────────────────────────────────── */
+header{background:
+    radial-gradient(120% 90% at 50% 0%,#12604c 0%,var(--felt) 45%,var(--felt-2) 100%);
+  color:var(--paper-2);padding:4.5rem 0 0;overflow:hidden}
+.eyebrow{font-size:.76rem;letter-spacing:.22em;text-transform:uppercase;color:#8fc2ae;margin:0 0 1.1rem}
+header h1{font-size:clamp(2.7rem,7.2vw,5.1rem);letter-spacing:-.025em;max-width:14ch;color:#fff}
+header h1 em{font-style:normal;color:#EFC677;font-variation-settings:'WONK' 1,'SOFT' 100}
+header p.lede{max-width:48ch;color:#BEDACE;font-size:1.06rem;margin-top:1.2rem}
+.rack{margin-top:3rem;padding:1.5rem 1.25rem 1.15rem;background:linear-gradient(#FBF7EC,#EDE3CC);
+  border-radius:.9rem .9rem 0 0;box-shadow:0 -2px 0 #fff inset,0 18px 44px rgba(0,0,0,.34);
+  display:flex;gap:clamp(.5rem,2.4vw,1.5rem);flex-wrap:wrap;justify-content:center}
+.meld{display:flex;flex-direction:column;align-items:center;gap:.35rem}
+.meld .row{gap:0}
+.meld figcaption{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.meld figcaption span{font-family:var(--zh);letter-spacing:0;color:var(--gold)}
+.rack .tile{--ts:clamp(3.1rem,7.2vw,4.6rem);animation:deal .5s cubic-bezier(.2,.9,.3,1) backwards;animation-delay:calc(var(--i) * 55ms)}
+@keyframes deal{from{opacity:0;transform:translateY(22px) rotate(-6deg)}}
+
+/* ── sections ────────────────────────────────── */
+section{padding:4.5rem 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:0}
+.mark{font-family:var(--zh);font-size:1.5rem;color:var(--gold);display:block;margin-bottom:.35rem}
+h2{font-size:clamp(1.9rem,4vw,2.8rem);letter-spacing:-.02em;margin-bottom:.7rem}
+h3{font-size:1.1rem;font-variation-settings:'WONK' 0;margin-bottom:.3rem}
+.sub{color:var(--ink-2);max-width:60ch}
+.card{background:var(--paper-2);border:1px solid var(--line);border-radius:.7rem;padding:1.15rem 1.25rem}
+.grid{display:grid;gap:1rem;margin-top:1.8rem}
+@media(min-width:720px){.g2{grid-template-columns:1fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}}
+
+/* tile reference */
+.suit{margin-top:2rem}
+.suit h3 small{font-weight:400;color:var(--ink-2);font-family:var(--body);font-size:.9rem;margin-left:.5rem}
+.tiles{display:flex;flex-wrap:wrap;gap:.9rem 1rem;margin-top:.9rem}
+.tiles figure{margin:0;width:5.6rem;text-align:center}
+.tiles .tile{--ts:4.3rem}
+.tiles figcaption{font-size:.66rem;line-height:1.35;color:var(--ink-2);margin-top:.15rem}
+.tiles figcaption b{display:block;font-family:var(--zh);font-weight:500;font-size:.92rem;color:var(--ink)}
+
+/* tables */
+table{width:100%;border-collapse:collapse;margin-top:1.4rem;font-size:.94rem}
+th,td{text-align:left;padding:.62rem .7rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+tbody tr:hover{background:#0000000a}
+
+/* ── quiz ────────────────────────────────────── */
+#practice{background:var(--felt);color:var(--paper-2);border-top:0}
+#practice h2{color:#fff}#practice .mark{color:#EFC677}#practice .sub{color:#BEDACE}
+.modes{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1.6rem}
+.modes button{font:inherit;font-size:.86rem;padding:.45rem .95rem;border-radius:99px;cursor:pointer;
+  background:transparent;color:#BEDACE;border:1px solid #ffffff33;transition:.15s}
+.modes button:hover{border-color:#ffffff77;color:#fff}
+.modes button[aria-pressed=true]{background:var(--paper-2);color:var(--felt-2);border-color:var(--paper-2);font-weight:600}
+.quiz{margin-top:1.4rem;background:var(--paper-2);color:var(--ink);border-radius:.9rem;padding:1.6rem;box-shadow:0 16px 40px rgba(0,0,0,.25)}
+.qprompt{font-family:var(--display);font-size:1.25rem;font-variation-settings:'WONK' 0;margin:0}
+.qtiles{display:flex;flex-wrap:wrap;gap:.15rem;margin:1.1rem 0 1.3rem;min-height:4.4rem;align-items:flex-end}
+.qtiles .tile{--ts:clamp(3rem,6vw,4.4rem)}
+.qtiles .gap{width:1.6rem}
+.opts{display:grid;gap:.5rem}
+@media(min-width:640px){.opts{grid-template-columns:1fr 1fr}}
+.opts button{font:inherit;text-align:left;padding:.7rem .9rem;border-radius:.5rem;cursor:pointer;
+  background:#fff;border:1px solid var(--line);transition:.12s}
+.opts button:hover:not(:disabled){border-color:var(--ink-2)}
+.opts button:disabled{cursor:default;opacity:.55}
+.opts button.right{background:#E3F2E8;border-color:var(--jade);color:#0d4c34;opacity:1;font-weight:600}
+.opts button.wrong{background:#FBE7E4;border-color:var(--red);color:#7d241a;opacity:1}
+.why{margin:1.1rem 0 0;padding:.85rem 1rem;border-left:3px solid var(--gold);background:#00000008;font-size:.94rem;border-radius:0 .35rem .35rem 0}
+.why[hidden]{display:none}
+.why .tile{--ts:2.4rem;vertical-align:-.35em;filter:none}
+.qfoot{display:flex;gap:1rem;align-items:center;margin-top:1.2rem;flex-wrap:wrap}
+.qfoot .score{font-size:.85rem;color:var(--ink-2);font-variant-numeric:tabular-nums;margin-left:auto}
+.next{font:inherit;font-weight:600;padding:.6rem 1.4rem;border-radius:99px;border:0;cursor:pointer;background:var(--felt);color:#fff}
+.next:hover{background:var(--felt-2)}
+
+footer{padding:3rem 0;font-size:.86rem;color:var(--ink-2)}
+footer a{color:var(--ink)}
+:focus-visible{outline:2.5px solid var(--gold);outline-offset:3px;border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <b>Learn Mahjong</b>
+  <a href="#tiles">Tiles</a><a href="#sets">Sets</a><a href="#play">Play</a><a href="#scoring">Scoring</a><a href="#practice">Practice</a>
+</div></nav>
+
+<header>
+  <div class="wrap">
+    <p class="eyebrow">Hong Kong old style &middot; <span class="zh">香港麻雀</span></p>
+    <h1>Four sets, one pair, and <em>a lot of shouting</em>.</h1>
+    <p class="lede">That's the whole game. Everything else — the 144 tiles, the claims, the faan — is detail you pick up one round at a time. Start with a finished hand.</p>
+    <div class="rack" id="rack"></div>
+  </div>
+</header>
+
+<main>
+
+<section id="tiles"><div class="wrap">
+  <span class="mark">牌</span>
+  <h2>The 144 tiles</h2>
+  <p class="sub">136 tiles that count, plus 8 bonus tiles that don't sit in your hand. Three suits run 1&ndash;9 and can form runs. Honours never form runs — only identical groups.</p>
+  <div id="reference"></div>
+</div></section>
+
+<section id="sets"><div class="wrap">
+  <span class="mark">組合</span>
+  <h2>What you're building</h2>
+  <p class="sub">A winning hand is four sets plus one pair — 14 tiles. Every set is one of three shapes.</p>
+  <div class="grid g2" id="setcards"></div>
+  <div class="card" style="margin-top:1rem">
+    <h3>A kong is still one set</h3>
+    <p style="margin:.4rem 0 0;color:var(--ink-2)">Four identical tiles count as a single set, so you draw a replacement tile from the back of the wall to stay at the right hand size. Declaring a kong is optional — it adds a little value and one more tile you can't change.</p>
+  </div>
+</div></section>
+
+<section id="play"><div class="wrap">
+  <span class="mark">打牌</span>
+  <h2>How a round plays</h2>
+  <p class="sub">Four players, seats named East, South, West and North, turns moving counter-clockwise. East deals and starts with 14 tiles; everyone else holds 13.</p>
+
+  <div class="grid g2">
+    <div class="card"><h3>Your turn</h3><p style="margin:.4rem 0 0;color:var(--ink-2)">Draw one tile, then discard one face up in the middle. Your hand is back to 13 and play passes to the right.</p></div>
+    <div class="card"><h3>Someone else's discard</h3><p style="margin:.4rem 0 0;color:var(--ink-2)">You may interrupt to claim it — but only to complete a set right now, and you must show the meld face up. Then you discard and play resumes from you.</p></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Call</th><th>Whose discard</th><th>What you show</th><th>Beats</th></tr></thead>
+    <tbody>
+      <tr><td><b class="zh">食糊</b> Win</td><td>Anyone</td><td>Your complete hand</td><td>Everything</td></tr>
+      <tr><td><b class="zh">碰</b> Pung</td><td>Anyone</td><td>Your two matching tiles</td><td>Chow</td></tr>
+      <tr><td><b class="zh">槓</b> Kong</td><td>Anyone</td><td>Your three matching tiles</td><td>Chow</td></tr>
+      <tr><td><b class="zh">上</b> Chow</td><td class="num">Left player only</td><td>Two tiles either side of a run</td><td>Nothing</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:1rem;color:var(--ink-2);font-size:.92rem">Flowers and seasons never stay in hand: reveal one the moment you draw it and take a replacement tile.</p>
+</div></section>
+
+<section id="scoring"><div class="wrap">
+  <span class="mark">番</span>
+  <h2>Faan, and what it costs</h2>
+  <p class="sub">Value is counted in faan. Most tables set a minimum of 3 faan to declare a win, and cap payouts at 10. Faan stack — a concealed self-drawn all-pungs hand collects all three.</p>
+
+  <table>
+    <thead><tr><th>Pattern</th><th>Cantonese</th><th>Faan</th><th>What it means</th></tr></thead>
+    <tbody>
+      <tr><td>Chicken hand</td><td class="zh">雞糊</td><td class="num">0</td><td>A valid hand with no scoring pattern at all</td></tr>
+      <tr><td>Self-draw</td><td class="zh">自摸</td><td class="num">1</td><td>You drew your own winning tile</td></tr>
+      <tr><td>Fully concealed</td><td class="zh">門前清</td><td class="num">1</td><td>You never claimed a discard</td></tr>
+      <tr><td>Seat or round wind</td><td class="zh">圈風 / 門風</td><td class="num">1</td><td>Per pung of the wind that matches your seat or the round</td></tr>
+      <tr><td>Dragon pung</td><td class="zh">三元牌</td><td class="num">1</td><td>Per pung of red, green or white dragon</td></tr>
+      <tr><td>Matching flower or season</td><td class="zh">花牌</td><td class="num">1</td><td>Per bonus tile matching your seat number</td></tr>
+      <tr><td>No flowers</td><td class="zh">無花</td><td class="num">1</td><td>You finished without a single bonus tile</td></tr>
+      <tr><td>All pungs</td><td class="zh">碰碰糊</td><td class="num">3</td><td>Four pungs or kongs and a pair — no runs</td></tr>
+      <tr><td>Half flush</td><td class="zh">混一色</td><td class="num">3</td><td>One suit plus honours, nothing else</td></tr>
+      <tr><td>Small three dragons</td><td class="zh">小三元</td><td class="num">5</td><td>Two dragon pungs and the third dragon as your pair</td></tr>
+      <tr><td>Full flush</td><td class="zh">清一色</td><td class="num">7</td><td>A single suit, no honours</td></tr>
+      <tr><td>Big three dragons</td><td class="zh">大三元</td><td class="num">8</td><td>All three dragons as pungs</td></tr>
+      <tr><td>All honours</td><td class="zh">字一色</td><td class="num">10</td><td>Winds and dragons only</td></tr>
+      <tr><td>Thirteen orphans</td><td class="zh">十三么</td><td class="num">13</td><td>All terminals and honours, one of them paired</td></tr>
+      <tr><td>Big four winds</td><td class="zh">大四喜</td><td class="num">13</td><td>All four winds as pungs</td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid g2" style="margin-top:1.8rem">
+    <div class="card">
+      <h3>Faan to units</h3>
+      <table style="margin-top:.7rem">
+        <thead><tr><th>Faan</th><th>Units</th><th>Faan</th><th>Units</th><th>Faan</th><th>Units</th></tr></thead>
+        <tbody>
+          <tr><td class="num">3</td><td>8</td><td class="num">6</td><td>32</td><td class="num">9</td><td>96</td></tr>
+          <tr><td class="num">4</td><td>16</td><td class="num">7</td><td>48</td><td class="num">10+</td><td>128</td></tr>
+          <tr><td class="num">5</td><td>24</td><td class="num">8</td><td>64</td><td></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Who pays</h3>
+      <p style="margin:.4rem 0 0;color:var(--ink-2)">Win on a discard and the discarder pays the whole amount alone. Win on your own draw and all three opponents pay it each — which is why <span class="zh">自摸</span> hurts.</p>
+      <p style="margin:.8rem 0 0;color:var(--ink-3);font-size:.88rem">Payout tables and the exact faan for smaller patterns vary table to table. Agree on house rules before the first deal.</p>
+    </div>
+  </div>
+</div></section>
+
+<section id="practice"><div class="wrap">
+  <span class="mark">練習</span>
+  <h2>Practice</h2>
+  <p class="sub">Four drills. Pick one and keep going until the answers stop feeling like guesses.</p>
+  <div class="modes" id="modes" role="group" aria-label="Drill"></div>
+  <div class="quiz">
+    <p class="qprompt" id="qprompt"></p>
+    <div class="qtiles" id="qtiles"></div>
+    <div class="opts" id="qopts"></div>
+    <p class="why" id="qwhy" hidden></p>
+    <div class="qfoot">
+      <button class="next" id="qnext">Next question</button>
+      <span class="score" id="qscore"></span>
+    </div>
+  </div>
+</div></section>
+
+</main>
+
+<footer><div class="wrap">
+  Hong Kong old style. Built as a single static page — <a href="https://github.com/nicholaslie90/learn-mahjong">source on GitHub</a>. Tiles are Unicode glyphs (U+1F000–U+1F02B); if they look plain, your system font is drawing them.
+</div></footer>
+
+<script>
+"use strict";
+/* ── tile model ───────────────────────────────────────────── */
+const SUIT = {
+  m:{label:"Characters", zh:"萬", cp:0x1F007, ink:"ink",    hint:"the number, then 萬"},
+  s:{label:"Bamboo",     zh:"索", cp:0x1F010, ink:"jade",   hint:"count the sticks — 1 is a bird"},
+  p:{label:"Circles",    zh:"筒", cp:0x1F019, ink:"indigo", hint:"count the dots"}
+};
+const NUM = ["One","Two","Three","Four","Five","Six","Seven","Eight","Nine"];
+const ZHN = ["一","二","三","四","五","六","七","八","九"];
+const HONOR = {
+  E:{cp:0x1F000,label:"East Wind",   zh:"東",ink:"ink",   grp:"wind"},
+  S:{cp:0x1F001,label:"South Wind",  zh:"南",ink:"ink",   grp:"wind"},
+  W:{cp:0x1F002,label:"West Wind",   zh:"西",ink:"ink",   grp:"wind"},
+  N:{cp:0x1F003,label:"North Wind",  zh:"北",ink:"ink",   grp:"wind"},
+  C:{cp:0x1F004,label:"Red Dragon",  zh:"中",ink:"red",   grp:"dragon"},
+  F:{cp:0x1F005,label:"Green Dragon",zh:"發",ink:"jade",  grp:"dragon"},
+  B:{cp:0x1F006,label:"White Dragon",zh:"白",ink:"indigo",grp:"dragon"}
+};
+const BONUS = {
+  b1:{cp:0x1F022,label:"Plum flower",  zh:"梅"}, b2:{cp:0x1F023,label:"Orchid flower",zh:"蘭"},
+  b3:{cp:0x1F024,label:"Bamboo flower",zh:"竹"}, b4:{cp:0x1F025,label:"Chrysanthemum flower",zh:"菊"},
+  b5:{cp:0x1F026,label:"Spring season",zh:"春"}, b6:{cp:0x1F027,label:"Summer season",zh:"夏"},
+  b7:{cp:0x1F028,label:"Autumn season",zh:"秋"}, b8:{cp:0x1F029,label:"Winter season",zh:"冬"}
+};
+function info(id){
+  if(HONOR[id]) return HONOR[id];
+  if(BONUS[id]) return Object.assign({ink:"gold",grp:"bonus"},BONUS[id]);
+  const n=+id[0], s=SUIT[id[1]];
+  return {cp:s.cp+n-1, label:NUM[n-1]+" "+s.label, zh:ZHN[n-1]+s.zh, ink:s.ink, grp:"suit"};
+}
+/* U+1F004 defaults to emoji presentation; VS15 forces the flat tile glyph. */
+function glyph(id){ const c=info(id).cp; return String.fromCodePoint(c)+(c===0x1F004?"︎":""); }
+function tileEl(id,opts){
+  opts=opts||{};
+  const i=info(id), el=document.createElement("span");
+  el.className="tile ink-"+i.ink+(opts.lift?" lift":"");
+  el.textContent=glyph(id);
+  el.setAttribute("role","img");
+  el.setAttribute("aria-label",i.label);
+  if(opts.i!=null) el.style.setProperty("--i",opts.i);
+  return el;
+}
+const rowEl=(ids,opts)=>{const d=document.createElement("div");d.className="row";ids.forEach((id,n)=>d.append(tileEl(id,Object.assign({i:n},opts))));return d;};
+
+/* ── hero: a finished hand ────────────────────────────────── */
+const HAND=[["2m","3m","4m"],["5s","5s","5s"],["7p","8p","9p"],["E","E","E"],["B","B"]];
+const MELDNAME=["Chow <span>上</span>","Pung <span>碰</span>","Chow <span>上</span>","Pung <span>碰</span>","Pair <span>眼</span>"];
+(function(){
+  const rack=document.getElementById("rack"); let n=0;
+  HAND.forEach((meld,mi)=>{
+    const f=document.createElement("figure"); f.className="meld"; f.style.margin=0;
+    const r=document.createElement("div"); r.className="row";
+    meld.forEach(id=>r.append(tileEl(id,{i:n++,lift:true})));
+    const c=document.createElement("figcaption"); c.innerHTML=MELDNAME[mi];
+    f.append(r,c); rack.append(f);
+  });
+})();
+
+/* ── tile reference ───────────────────────────────────────── */
+(function(){
+  const ref=document.getElementById("reference");
+  const block=(title,note,ids,captionOf)=>{
+    const s=document.createElement("div"); s.className="suit";
+    s.innerHTML='<h3>'+title+'<small>'+note+'</small></h3>';
+    const g=document.createElement("div"); g.className="tiles";
+    ids.forEach(id=>{
+      const i=info(id), f=document.createElement("figure");
+      f.append(tileEl(id,{lift:true}));
+      const c=document.createElement("figcaption");
+      c.innerHTML='<b class="zh">'+i.zh+'</b>'+(captionOf?captionOf(id,i):i.label);
+      f.append(c); g.append(f);
+    });
+    s.append(g); ref.append(s);
+  };
+  const nums=k=>[1,2,3,4,5,6,7,8,9].map(n=>n+k);
+  ["m","s","p"].forEach(k=>block(
+    SUIT[k].label+' <span class="zh">'+SUIT[k].zh+'</span>',
+    "36 tiles &middot; four of each &middot; "+SUIT[k].hint,
+    nums(k), (id,i)=>i.label.split(" ")[0]));
+  block('Winds <span class="zh">風</span>',"16 tiles &middot; four of each &middot; they mark the seats",["E","S","W","N"],(id,i)=>i.label.split(" ")[0]);
+  block('Dragons <span class="zh">三元牌</span>',"12 tiles &middot; four of each &middot; every pung is worth faan",["C","F","B"],(id,i)=>i.label.split(" ")[0]);
+  block('Flowers &amp; seasons <span class="zh">花牌</span>',"8 tiles &middot; one of each &middot; bonus only, never held in hand",Object.keys(BONUS),(id,i)=>i.label);
+})();
+
+/* ── set cards ────────────────────────────────────────────── */
+(function(){
+  const cards=[
+    ["Chow","上","Three tiles in a run, same suit. Honours can't make runs — <span class=\"zh\">東南西</span> is not a sequence.",["3p","4p","5p"]],
+    ["Pung","碰","Three identical tiles. Any tile in the game can make one.",["W","W","W"]],
+    ["Kong","槓","Four identical tiles. Draw a replacement and carry on.",["6m","6m","6m","6m"]],
+    ["Pair","眼","Two identical tiles — the eye. Exactly one per hand.",["9s","9s"]]
+  ];
+  const host=document.getElementById("setcards");
+  cards.forEach(([en,zh,desc,ids])=>{
+    const d=document.createElement("div"); d.className="card";
+    d.innerHTML='<h3>'+en+' <span class="zh" style="color:var(--gold)">'+zh+'</span></h3>';
+    const r=rowEl(ids,{lift:true}); r.style.margin=".7rem 0 .8rem";
+    const p=document.createElement("p"); p.style.cssText="margin:0;color:var(--ink-2);font-size:.94rem"; p.innerHTML=desc;
+    d.append(r,p); host.append(d);
+  });
+})();
+
+/* ── practice ─────────────────────────────────────────────── */
+const SUITED=["m","s","p"].flatMap(k=>[1,2,3,4,5,6,7,8,9].map(n=>n+k));
+const HONORS=Object.keys(HONOR);
+const ALL=SUITED.concat(HONORS);
+const pick=a=>a[Math.random()*a.length|0];
+const shuffle=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
+const g=id=>'<span class="tile ink-'+info(id).ink+'">'+glyph(id)+'</span>';
+
+function qName(){
+  const pool=ALL.concat(Object.keys(BONUS));
+  const t=pick(pool), right=info(t).label;
+  const wrong=shuffle(pool.filter(x=>info(x).label!==right)).slice(0,3).map(x=>info(x).label);
+  return {prompt:"Which tile is this?", tiles:[t], options:shuffle([right].concat(wrong)), answer:right,
+    why:g(t)+" is the "+right+' — <span class="zh">'+info(t).zh+"</span>."};
+}
+
+function qSet(){
+  const CHOW="Chow 順子", PUNG="Pung 刻子", NONE="Not a set";
+  const kind=pick(["chow","pung","none","none"]);
+  let tiles, answer, why;
+  if(kind==="chow"){
+    const k=pick(["m","s","p"]), n=1+(Math.random()*7|0);
+    tiles=[n+k,(n+1)+k,(n+2)+k]; answer=CHOW;
+    why="Three in a row in the same suit — a chow. You may only claim one from the player on your left.";
+  }else if(kind==="pung"){
+    const t=pick(ALL); tiles=[t,t,t]; answer=PUNG;
+    why="Three identical tiles — a pung. Claimable from anyone, and it outranks a chow.";
+  }else{
+    answer=NONE;
+    const trap=pick(["honor-run","gap","cross","mixed"]);
+    if(trap==="honor-run"){
+      const w=shuffle(pick([["E","S","W"],["S","W","N"],["C","F","B"]]));
+      tiles=w; why="Honours have no order, so they never form runs. Winds and dragons only ever group as pairs, pungs and kongs.";
+    }else if(trap==="gap"){
+      const k=pick(["m","s","p"]), n=1+(Math.random()*5|0);
+      tiles=[n+k,(n+2)+k,(n+3)+k]; why="There's a gap. A chow has to be three consecutive numbers.";
+    }else if(trap==="cross"){
+      const [a,b]=shuffle(["m","s","p"]).slice(0,2), n=1+(Math.random()*7|0);
+      tiles=[n+a,(n+1)+a,(n+2)+b]; why="The run breaks suit on the last tile. A chow lives entirely in one suit.";
+    }else{
+      tiles=shuffle(ALL).slice(0,3); why="Three unrelated tiles — no run, no match.";
+    }
+  }
+  return {prompt:"Is this a set?", tiles:tiles, options:[CHOW,PUNG,NONE], answer:answer, why:why};
+}
+
+function formsRun(hand,discard){
+  const all=hand.concat([discard]);
+  if(all.some(t=>HONOR[t])) return false;
+  if(new Set(all.map(t=>t[1])).size>1) return false;
+  const n=all.map(t=>+t[0]).sort();
+  return n[1]===n[0]+1 && n[2]===n[1]+1;
+}
+function qClaim(){
+  const PUNG="Pung 碰", CHOW="Chow 上", NO="Can't claim it";
+  const seats=[["the player on your left",true],["the player across from you",false],["the player on your right",false]];
+  const [seat,isLeft]=pick(seats);
+  const kind=pick(["pung","chow","chow","none"]);
+  let discard, hand, answer, why;
+  if(kind==="pung"){
+    discard=pick(ALL); hand=[discard,discard]; answer=PUNG;
+    why="A pung can be claimed from any seat, so it doesn't matter that it came from "+seat+".";
+  }else if(kind==="chow"){
+    const k=pick(["m","s","p"]), n=1+(Math.random()*7|0), run=[n+k,(n+1)+k,(n+2)+k];
+    const i=Math.random()*3|0;
+    discard=run[i]; hand=run.filter((_,j)=>j!==i);
+    answer=isLeft?CHOW:NO;
+    why=isLeft
+      ? "Your two tiles complete the run, and a chow may only be claimed from the player on your left — which is exactly who discarded."
+      : "Your tiles do complete a run, but a chow can only be taken from the player on your left. From "+seat+", let it go.";
+  }else{
+    discard=pick(ALL);
+    do{ hand=shuffle(ALL).slice(0,2); }
+    while(hand.includes(discard)||hand[0]===hand[1]||formsRun(hand,discard));
+    answer=NO;
+    why="Nothing in your hand pairs with it or runs into it, so there's no set to complete.";
+  }
+  return {prompt:"You hold these two tiles. "+seat.charAt(0).toUpperCase()+seat.slice(1)+" discards the tile on the right. What can you call?",
+    tiles:hand.concat(["gap",discard]), options:[PUNG,CHOW,NO], answer:answer, why:why};
+}
+
+const FAAN=[
+  {name:"All pungs 碰碰糊 — 3 faan", tiles:["3m","3m","3m","gap","7s","7s","7s","gap","9p","9p","9p","gap","E","E","E","gap","5m","5m"],
+   why:"Four pungs and a pair, not a single run in sight."},
+  {name:"Half flush 混一色 — 3 faan", tiles:["2s","3s","4s","gap","6s","7s","8s","gap","9s","9s","9s","gap","C","C","C","gap","W","W"],
+   why:"One suit plus honours. Strip out the honours and it would be a full flush."},
+  {name:"Full flush 清一色 — 7 faan", tiles:["1p","2p","3p","gap","4p","5p","6p","gap","7p","8p","9p","gap","2p","2p","2p","gap","5p","5p"],
+   why:"Circles and nothing else — no honours allowed in a full flush."},
+  {name:"Big three dragons 大三元 — 8 faan", tiles:["C","C","C","gap","F","F","F","gap","B","B","B","gap","3m","4m","5m","gap","7s","7s"],
+   why:"All three dragons as pungs. Two pungs plus the third as your pair would be small three dragons instead."},
+  {name:"Small three dragons 小三元 — 5 faan", tiles:["C","C","C","gap","F","F","F","gap","2p","3p","4p","gap","6s","7s","8s","gap","B","B"],
+   why:"Two dragon pungs and the third dragon sitting as the pair."},
+  {name:"All honours 字一色 — 10 faan", tiles:["E","E","E","gap","S","S","S","gap","W","W","W","gap","C","C","C","gap","F","F"],
+   why:"Winds and dragons only. No suit tile ever enters the hand."},
+  {name:"Thirteen orphans 十三么 — 13 faan", tiles:["1m","9m","1s","9s","1p","9p","E","S","W","N","C","F","B","1m"],
+   why:"Every terminal and every honour, one of them doubled. The one hand that ignores the four-sets rule."},
+  {name:"Chicken hand 雞糊 — 0 faan", tiles:["1m","2m","3m","gap","4s","5s","6s","gap","7p","8p","9p","gap","3p","4p","5p","gap","2s","2s"],
+   why:"Complete and completely unremarkable — no flush, no honours, no pungs. On a 3-faan table you can't even declare it."}
+];
+function qFaan(){
+  const h=pick(FAAN);
+  const wrong=shuffle(FAAN.filter(x=>x!==h)).slice(0,3).map(x=>x.name);
+  return {prompt:"What is this hand worth?", tiles:h.tiles, options:shuffle([h.name].concat(wrong)), answer:h.name, why:h.why};
+}
+
+const MODES=[["Name the tile",qName],["Chow, pung or nothing",qSet],["Can you claim it?",qClaim],["Score the hand",qFaan]];
+let mode=0, asked=0, right=0, streak=0, best=0, current=null;
+
+const el=id=>document.getElementById(id);
+(function(){
+  const host=el("modes");
+  MODES.forEach(([label],i)=>{
+    const b=document.createElement("button");
+    b.type="button"; b.textContent=label; b.setAttribute("aria-pressed",i===0);
+    b.onclick=()=>{ mode=i; [...host.children].forEach((c,j)=>c.setAttribute("aria-pressed",j===i)); deal(); };
+    host.append(b);
+  });
+})();
+
+function deal(){
+  current=MODES[mode][1]();
+  el("qprompt").textContent=current.prompt;
+  const t=el("qtiles"); t.replaceChildren();
+  current.tiles.forEach(id=>{
+    if(id==="gap"){ const s=document.createElement("span"); s.className="gap"; t.append(s); }
+    else t.append(tileEl(id,{lift:true}));
+  });
+  const o=el("qopts"); o.replaceChildren();
+  current.options.forEach(opt=>{
+    const b=document.createElement("button");
+    b.type="button"; b.textContent=opt; b.onclick=()=>answer(opt,o);
+    o.append(b);
+  });
+  el("qwhy").hidden=true;
+  score();
+}
+function answer(chosen,host){
+  const ok=chosen===current.answer;
+  asked++; if(ok){right++; streak++; best=Math.max(best,streak);} else streak=0;
+  [...host.children].forEach(b=>{
+    b.disabled=true;
+    if(b.textContent===current.answer) b.classList.add("right");
+    else if(b.textContent===chosen) b.classList.add("wrong");
+  });
+  const w=el("qwhy");
+  w.innerHTML=(ok?"<b>Right. </b>":"<b>Not quite. </b>")+current.why;
+  w.hidden=false;
+  score();
+}
+function score(){
+  el("qscore").textContent=asked?right+" of "+asked+" correct  ·  streak "+streak+"  ·  best "+best:"No answers yet";
+}
+el("qnext").onclick=deal;
+deal();
+</script>
+</body>
+</html>
