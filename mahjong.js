@@ -97,8 +97,8 @@ function waitsFor(h){
   ORDER.forEach(t=>{if(c[IDX[t]]<4&&findWin(h.concat([t]),[]).length)w.push(t)});
   return w;
 }
-const UNITS=[1,2,4,8,16,24,32,48,64,96];
-const units=f=>f>=10?128:UNITS[f];
+const UNITS=[1,2,4,8,16,24,32,48,64,96,128,192,256,384];
+const units=f=>UNITS[Math.min(Math.max(f,0),RULES.limit)];
 
 function scoreWin(d,melds,ctx){
   const pats=[],add=(n,zh,f)=>pats.push({n:n,zh:zh,f:f});
@@ -113,22 +113,23 @@ function scoreWin(d,melds,ctx){
     const wp=pungs.filter(m=>HONOR[m.tiles[0]]&&HONOR[m.tiles[0]].grp==="wind");
     const pairH=HONOR[d.pair];
     if(wp.length===4) add("Big four winds","大四喜",13);
-    else if(wp.length===3&&pairH&&pairH.grp==="wind") add("Small four winds","小四喜",10);
-    if(!suits.size) add("All honours","字一色",10);
+    else if(wp.length===3&&pairH&&pairH.grp==="wind") add("Small four winds","小四喜",RULES.s4w);
+    if(!suits.size) add("All honours","字一色",RULES.allh);
     if(dr.length===3) add("Big three dragons","大三元",8);
-    else if(dr.length===2&&pairH&&pairH.grp==="dragon") add("Small three dragons","小三元",5);
+    else if(dr.length===2&&pairH&&pairH.grp==="dragon") add("Small three dragons","小三元",RULES.s3d);
     else dr.forEach(m=>add("Dragon pung "+info(m.tiles[0]).zh,"三元牌",1));
     if(suits.size===1) add(honor?"Half flush":"Full flush",honor?"混一色":"清一色",honor?3:7);
     if(pungs.length===4) add("All pungs","碰碰糊",3);
+    if(RULES.allchow&&all.length-pungs.length===4&&!pairH) add("All chows","平糊",RULES.allchow);
     wp.forEach(m=>{
       if(m.tiles[0]===ctx.seatWind) add("Seat wind pung","門風",1);
       if(m.tiles[0]===ctx.roundWind) add("Round wind pung","圈風",1);
     });
   }
   if(ctx.selfDraw) add("Self-draw","自摸",1);
-  if(ctx.concealed) add("Fully concealed","門前清",1);
+  if(ctx.concealed&&RULES.conc) add("Fully concealed","門前清",RULES.conc);
   for(let i=0;i<(ctx.bonusMatch||0);i++) add("Matching flower","花牌",1);
-  if(ctx.bonusCount===0) add("No flowers","無花",1);
+  if(ctx.bonusCount===0&&RULES.noflw) add("No flowers","無花",RULES.noflw);
   return {pats:pats,faan:pats.reduce((a,p)=>a+p.f,0)};
 }
 /* best-scoring reading of a winning hand, or null if it isn't one */
@@ -161,6 +162,40 @@ function meldRow(sets,pair){
   });
   return r;
 }
+
+/* ── house rules ────────────────────────────────────────────────────────────
+   Hong Kong old style is a family of tables, not one rulebook. These are the
+   points that genuinely differ from table to table; everything else here is
+   settled. Patterns that belong to other variants (three similar sequences,
+   for one, which is Riichi and Chinese Official but not Hong Kong) are not
+   offered — turning them on would not make this a Hong Kong table. */
+const RULE_DEFS=[
+  {k:"min",label:"Minimum faan to declare",zh:"最低番數",opts:[0,1,3,5],def:3,
+   note:"A hand below this cannot be declared, however complete it is. Three is the usual table."},
+  {k:"limit",label:"Limit — faan cap out here",zh:"滿糊",opts:[10,13],def:10,
+   note:"Where the payout table stops doubling."},
+  {k:"s3d",label:"Small three dragons",zh:"小三元",opts:[3,5],def:5},
+  {k:"s4w",label:"Small four winds",zh:"小四喜",opts:[6,10],def:10},
+  {k:"allh",label:"All honours",zh:"字一色",opts:[10,13],def:10},
+  {k:"conc",label:"Fully concealed",zh:"門前清",opts:[0,1],def:1,
+   note:"One faan for never claiming a discard."},
+  {k:"noflw",label:"No flowers",zh:"無花",opts:[0,1],def:1,
+   note:"One faan for finishing without a single bonus tile."},
+  {k:"allchow",label:"All chows",zh:"平糊",opts:[0,1],def:0,
+   note:"One faan for four runs and a plain pair. Plenty of tables leave it out."}
+];
+const RULES={};
+RULE_DEFS.forEach(r=>{RULES[r.k]=r.def});
+function loadRules(){
+  try{
+    const j=JSON.parse(localStorage.getItem("mj-rules")||"{}");
+    RULE_DEFS.forEach(r=>{if(r.opts.indexOf(j[r.k])>=0)RULES[r.k]=j[r.k]});
+  }catch(e){}
+}
+function saveRules(){try{localStorage.setItem("mj-rules",JSON.stringify(RULES))}catch(e){}}
+loadRules();
+/* complete is not the same as declarable: most tables set a floor */
+const declarable=a=>!!a&&a.score.faan>=RULES.min;
 
 /* ── how close a hand is, and what to throw ─────────────────────────────────
    Shanten is the number of tile swaps still needed: 0 means ready (tenpai).

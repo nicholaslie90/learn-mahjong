@@ -35,4 +35,10 @@ No build, no dependencies. Tiles are Unicode glyphs (U+1F000–U+1F02B), so ther
 - **shanten and advice** — known shanten values, that the blocks a line claims to keep are really in the hand, that the advice never misses a better discard, and that a tile nobody can still draw is never counted as help
 - **the engine** — 25 complete rounds played out, checking every round that all 144 tiles are accounted for with no duplicates, that nobody holds more than their melds allow, and that a declared winner really does hold a winning hand
 
-Payout tables and the exact faan for smaller patterns vary table to table — agree on house rules before the first deal. The practice table enforces no minimum faan, and only supports konging on a discard.
+## House rules
+
+Hong Kong old style is a family of tables, not one rulebook, so the points that genuinely differ are settings rather than assumptions — the minimum faan to declare (3 by default), where the payout table caps out, the value of small three dragons, small four winds and all honours, and whether fully concealed, no flowers and all chows count at all. Change them in the guide's **House rules** panel and the faan list, the hand builder and the table all follow; they persist in the browser.
+
+Patterns belonging to other variants are deliberately absent. Three similar sequences (三色同順 — 123 in all three suits) is a Riichi and Chinese Official pattern, not a Hong Kong one, so a hand holding it scores nothing extra here; offering it as a switch would not make this a Hong Kong table.
+
+The table only supports konging on a discard — concealed and added kongs are not implemented.

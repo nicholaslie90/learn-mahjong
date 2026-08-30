@@ -145,6 +145,49 @@ const dead = advise(["2m","3m","4m","5s","5s","5s","7p","8p","9p","E","E","E","B
                     {seatWind:"E", roundWind:"E"});
 ok(dead.pick.accept.every(x => x.t !== "B"), "all four B are seen, so B is not live");
 
+/* ── house rules ──────────────────────────────────────────────────────── */
+
+// 15. defaults are the usual Hong Kong table
+ok(RULES.min === 3 && RULES.limit === 10 && RULES.s3d === 5 && RULES.allchow === 0,
+   "unexpected defaults: " + JSON.stringify(RULES));
+
+// 16. a variable pattern really does follow its setting
+const s3dHand = ["C","C","C","F","F","F","B","B","2p","3p","4p","6s","7s","8s"];
+ok(faanOf(s3dHand) === 6, "small three dragons 5 + concealed 1");
+RULES.s3d = 3;
+ok(faanOf(s3dHand) === 4, "small three dragons now 3 + concealed 1");
+RULES.s3d = 5;
+
+// 17. switching a pattern off removes it entirely
+const plain = ["2m","3m","4m","5s","5s","5s","7p","8p","9p","E","E","E","B","B"];
+const before = faanOf(plain);
+RULES.conc = 0;
+ok(faanOf(plain) === before - 1, "concealed faan should vanish when it is off");
+ok(!named(plain).includes("Fully concealed"), "and stop being listed");
+RULES.conc = 1;
+
+// 18. all chows is off by default and only fires on four runs with a plain pair
+const chowy = ["1m","2m","3m","4s","5s","6s","7p","8p","9p","3p","4p","5p","2s","2s"];
+ok(!named(chowy).includes("All chows"), "off by default");
+RULES.allchow = 1;
+ok(named(chowy).includes("All chows"), "on when switched on");
+ok(!named(plain).includes("All chows"), "never for a hand with pungs");
+RULES.allchow = 0;
+
+// 19. the limit is where the payout table stops
+ok(units(10) === 128 && units(13) === 128, "capped at 10 faan by default");
+RULES.limit = 13;
+ok(units(10) === 128 && units(13) === 384 && units(20) === 384, "capped at 13 when set there");
+RULES.limit = 10;
+
+// 20. complete is not the same as declarable
+const cheap = analyze(chowy, [], CTX);
+ok(cheap && cheap.score.faan < 3, "that hand is complete but cheap");
+ok(!declarable(cheap), "and cannot be declared on a 3-faan table");
+RULES.min = 0;
+ok(declarable(cheap), "but can when the table has no minimum");
+RULES.min = 3;
+
 /* ── the engine: play complete rounds ─────────────────────────────────── */
 
 // seat 0 is a person, so the round parks until we act. Play it randomly:
@@ -200,7 +243,8 @@ for (let round = 0; round < 25; round++) {
     const hand = W.hand[s].concat(W.drawn[s] ? [W.drawn[s]] : []).map(t => t.t);
     const melds = W.meld[s].map(m => ({type: m.type, tiles: m.tiles.map(t => t.t)}));
     ok(findWin(hand, melds).length >= 1, "round " + round + ": declared winner does not hold a winning hand");
-    ok(W.result.a && W.result.a.score.faan >= 0, "round " + round + ": winner has no score");
+    ok(W.result.a && W.result.a.score.faan >= RULES.min,
+       "round " + round + ": winner declared on " + W.result.a.score.faan + " faan under a " + RULES.min + " minimum");
   } else washouts++;
 }
 ok(wins > 0, "25 rounds produced no wins at all — the bots are broken");
@@ -215,7 +259,8 @@ ok(!kinds(1).includes("chow") && !kinds(2).includes("chow"), "no chow from anyon
 W.hand[0] = ["5m","5m","1s","2s","3s","5p","6p","7p","C","C","F","F","N"].map((t,i) => ({i:900+i, t}));
 ok([1,2,3].every(f => options(0, f, "5m").map(o => o.k).includes("pung")), "pung from any seat");
 
-console.log("selfcheck: all assertions passed (" + wins + " wins, " + washouts + " washouts in 25 rounds)");
+console.log("selfcheck: all assertions passed (" + wins + " wins, " + washouts
+  + " washouts in 25 rounds at a " + RULES.min + "-faan minimum)");
 `;
 
 vm.createContext(context);

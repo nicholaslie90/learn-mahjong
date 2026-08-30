@@ -162,6 +162,7 @@ button{font:inherit}
     <div class="hudmeta">
       <span class="wide">Round <b>東</b> East</span>
       <span id="wallct">—</span>
+      <a class="back" href="./#rules" id="rulelink">house rules</a>
     </div>
     <button class="hudbtn" id="hintbtn">Hints on</button>
     <button class="hudbtn" id="newbtn">New round</button>
@@ -464,6 +465,7 @@ function paint(){
       +'</span><span class="zh">'+SEATS[s].zh+'</span><em>'+full(s).length+'</em>';
   }
   el("wallct").textContent=W.wall.length+" in the wall";
+  el("rulelink").textContent=RULES.min?"min "+RULES.min+" faan":"no minimum";
   bar();
   tipFor(live);
 }
@@ -559,13 +561,14 @@ function turnOf(s){
   W.turn=s;W.pend=null;W.phase="draw";
   W.drawn[s]=takeLive(s,false);
   if(!W.drawn[s])return done(null);
-  const win=look(s,true);
-  if(win&&s!==0)return done({seat:s,by:null,a:win,tile:null});
-  W.canWin=(s===0)?win:null;
+  const win=look(s,true), can=declarable(win);
+  if(can&&s!==0)return done({seat:s,by:null,a:win,tile:null});
+  W.canWin=(s===0&&can)?win:null;
   W.phase="discard";
   say(s===0
-    ? (win?"You can declare a win — or discard and keep going."
-         :"Your turn. Pick a tile to discard.")
+    ? (can?"You can declare a win — or discard and keep going."
+      : win?"Complete, but only "+win.score.faan+" faan and this table needs "+RULES.min+". Keep building."
+      : "Your turn. Pick a tile to discard.")
     : "<b>"+SEATS[s].n+"</b> is thinking…");
   paint();
   if(s!==0)later(()=>botDiscard(s),THINK);
@@ -620,7 +623,7 @@ function discard(s,inst){
 }
 function options(p,from,tile){
   const o=[],c=counts(ids(full(p)));
-  if(analyze(ids(full(p)).concat([tile]),meldIds(p),ctxFor(p,false)))o.push({k:"win"});
+  if(declarable(analyze(ids(full(p)).concat([tile]),meldIds(p),ctxFor(p,false))))o.push({k:"win"});
   if(c[IDX[tile]]>=3)o.push({k:"kong"});
   if(c[IDX[tile]]>=2)o.push({k:"pung"});
   if(p===(from+1)%4&&!HONOR[tile]){
@@ -661,8 +664,8 @@ function settle(from,tile,bots,mine){
     : (w.seat===0?"You call ":"<b>"+SEATS[w.seat].n+"</b> calls ")+w.k+" on the "+info(tile).label+".";
   W.turn=w.seat;W.phase="discard";
   const again=look(w.seat,true);
-  if(again&&w.seat!==0)return done({seat:w.seat,by:null,a:again,tile:null});
-  W.canWin=(w.seat===0)?again:null;
+  if(declarable(again)&&w.seat!==0)return done({seat:w.seat,by:null,a:again,tile:null});
+  W.canWin=(w.seat===0&&declarable(again))?again:null;
   say(note+(w.seat===0?" Now discard.":""));
   paint();
   if(w.seat!==0)later(()=>botDiscard(w.seat),THINK);

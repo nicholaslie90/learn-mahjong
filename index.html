@@ -140,6 +140,20 @@ footer a{color:var(--ink)}
 .pats li{display:flex;justify-content:space-between;gap:1rem;border-bottom:1px solid var(--line);padding:.38rem 0;font-size:.93rem}
 .ghost{font:inherit;font-size:.85rem;padding:.42rem .95rem;border-radius:99px;border:1px solid var(--line);background:#fff;cursor:pointer}
 .ghost:hover{border-color:var(--ink-2)}
+/* ── house rules ─────────────────────────────── */
+.rule{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .9rem;padding:.65rem 0;border-bottom:1px solid var(--line)}
+.rule:last-of-type{border-bottom:0}
+.rule .lab{flex:1 1 15rem;min-width:0}
+.rule .lab b{font-weight:600}
+.rule .lab .zh{color:var(--gold);margin-left:.35rem}
+.rule .lab em{display:block;font-style:normal;font-size:.86rem;color:var(--ink-2);margin-top:.05rem}
+.seg{display:flex;flex:none;border:1px solid var(--line);border-radius:99px;overflow:hidden;background:#fff}
+.seg button{font:inherit;font-size:.85rem;padding:.34rem .85rem;border:0;background:none;cursor:pointer;color:var(--ink-2);min-width:2.9rem}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:var(--felt);color:#fff;font-weight:600}
+tr.off td{opacity:.4}
+tr.off td.num::after{content:" — off";font-weight:400;font-size:.8em}
+
 /* ── play-page invitation ────────────────────── */
 .playcard{display:flex;flex-wrap:wrap;align-items:center;gap:1.1rem 1.6rem;margin-top:1.7rem;
   padding:1.5rem 1.6rem;border-radius:.9rem;text-decoration:none;color:var(--paper-2);
@@ -240,21 +254,30 @@ footer a{color:var(--ink)}
     <tbody>
       <tr><td>Chicken hand</td><td class="zh">雞糊</td><td class="num">0</td><td>A valid hand with no scoring pattern at all</td></tr>
       <tr><td>Self-draw</td><td class="zh">自摸</td><td class="num">1</td><td>You drew your own winning tile</td></tr>
-      <tr><td>Fully concealed</td><td class="zh">門前清</td><td class="num">1</td><td>You never claimed a discard</td></tr>
+      <tr data-rule="conc"><td>Fully concealed</td><td class="zh">門前清</td><td class="num">1</td><td>You never claimed a discard</td></tr>
       <tr><td>Seat or round wind</td><td class="zh">圈風 / 門風</td><td class="num">1</td><td>Per pung of the wind that matches your seat or the round</td></tr>
       <tr><td>Dragon pung</td><td class="zh">三元牌</td><td class="num">1</td><td>Per pung of red, green or white dragon</td></tr>
       <tr><td>Matching flower or season</td><td class="zh">花牌</td><td class="num">1</td><td>Per bonus tile matching your seat number</td></tr>
-      <tr><td>No flowers</td><td class="zh">無花</td><td class="num">1</td><td>You finished without a single bonus tile</td></tr>
+      <tr data-rule="noflw"><td>No flowers</td><td class="zh">無花</td><td class="num">1</td><td>You finished without a single bonus tile</td></tr>
       <tr><td>All pungs</td><td class="zh">碰碰糊</td><td class="num">3</td><td>Four pungs or kongs and a pair — no runs</td></tr>
       <tr><td>Half flush</td><td class="zh">混一色</td><td class="num">3</td><td>One suit plus honours, nothing else</td></tr>
-      <tr><td>Small three dragons</td><td class="zh">小三元</td><td class="num">5</td><td>Two dragon pungs and the third dragon as your pair</td></tr>
+      <tr data-rule="allchow"><td>All chows</td><td class="zh">平糊</td><td class="num">1</td><td>Four runs and a plain pair — a house rule, not a given</td></tr>
+      <tr data-rule="s3d"><td>Small three dragons</td><td class="zh">小三元</td><td class="num">5</td><td>Two dragon pungs and the third dragon as your pair</td></tr>
       <tr><td>Full flush</td><td class="zh">清一色</td><td class="num">7</td><td>A single suit, no honours</td></tr>
       <tr><td>Big three dragons</td><td class="zh">大三元</td><td class="num">8</td><td>All three dragons as pungs</td></tr>
-      <tr><td>All honours</td><td class="zh">字一色</td><td class="num">10</td><td>Winds and dragons only</td></tr>
+      <tr data-rule="s4w"><td>Small four winds</td><td class="zh">小四喜</td><td class="num">10</td><td>Three wind pungs and the fourth wind as your pair</td></tr>
+      <tr data-rule="allh"><td>All honours</td><td class="zh">字一色</td><td class="num">10</td><td>Winds and dragons only</td></tr>
       <tr><td>Thirteen orphans</td><td class="zh">十三么</td><td class="num">13</td><td>All terminals and honours, one of them paired</td></tr>
       <tr><td>Big four winds</td><td class="zh">大四喜</td><td class="num">13</td><td>All four winds as pungs</td></tr>
     </tbody>
   </table>
+
+  <div class="card rules" id="rules" style="margin-top:1.8rem">
+    <h3>House rules</h3>
+    <p style="margin:.35rem 0 0;color:var(--ink-2);font-size:.94rem;max-width:62ch">Hong Kong old style is a family of tables, not one rulebook. These are the points that genuinely move; change them and the table, the builder and the faan list above all follow. Patterns from other variants — three similar sequences <span class="zh">三色同順</span>, say, which is Riichi and Chinese Official but not Hong Kong — are deliberately absent.</p>
+    <div id="ruleList"></div>
+    <button class="ghost" id="ruleReset" style="margin-top:.9rem">Back to the usual table</button>
+  </div>
 
   <div class="grid g2" style="margin-top:1.8rem">
     <div class="card">
@@ -527,6 +550,37 @@ deal();
 </script>
 <script>
 "use strict";
+/* ══ house rules ═════════════════════════════════════════════════════════ */
+function syncRules(){
+  document.querySelectorAll("tr[data-rule]").forEach(tr=>{
+    const v=RULES[tr.dataset.rule];
+    tr.classList.toggle("off",v===0);
+    tr.querySelector("td.num").textContent=v||1;
+  });
+  document.querySelectorAll("#ruleList .seg").forEach(seg=>{
+    [...seg.children].forEach(b=>b.setAttribute("aria-pressed",+b.dataset.v===RULES[seg.dataset.k]));
+  });
+  bRender();
+}
+(function(){
+  const host=el("ruleList");
+  RULE_DEFS.forEach(r=>{
+    const row=document.createElement("div");row.className="rule";
+    const lab=document.createElement("div");lab.className="lab";
+    lab.innerHTML='<b>'+r.label+'</b><span class="zh">'+r.zh+'</span>'+(r.note?'<em>'+r.note+'</em>':'');
+    const seg=document.createElement("div");seg.className="seg";seg.dataset.k=r.k;
+    r.opts.forEach(v=>{
+      const b=document.createElement("button");
+      b.type="button";b.dataset.v=v;
+      b.textContent=(r.opts.length===2&&r.opts[0]===0)?(v?"On":"Off"):v;
+      b.onclick=()=>{RULES[r.k]=v;saveRules();syncRules()};
+      seg.append(b);
+    });
+    row.append(lab,seg);host.append(row);
+  });
+  el("ruleReset").onclick=()=>{RULE_DEFS.forEach(r=>{RULES[r.k]=r.def});saveRules();syncRules()};
+})();
+
 /* ══ builder ═════════════════════════════════════════════════════════════ */
 let BH=[];
 function bAdd(t){
@@ -591,10 +645,10 @@ function bReadout(){
   d.innerHTML='<p class="ok" style="margin:0 0 .7rem">Winning hand.</p>';
   if(!a.d.orphans) d.append(meldRow(a.d.sets,a.d.pair));
   d.append(patList(a.score));
-  if(a.score.faan<3){
+  if(!declarable(a)){
     const p=document.createElement("p");
     p.style.cssText="margin:.7rem 0 0;color:var(--ink-2);font-size:.9rem";
-    p.textContent="Below the usual 3-faan minimum — a legal shape, but most tables would not let you declare it.";
+    p.textContent="Below this table's "+RULES.min+"-faan minimum — a legal shape, but you could not declare it.";
     d.append(p);
   }
   return d;
@@ -633,6 +687,7 @@ function bRender(){
   el("bwait").onclick=()=>{BH=randomHand(13);bRender()};
   bRender();
 })();
+syncRules();
 
 </script>
 </body>
