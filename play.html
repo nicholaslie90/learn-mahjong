@@ -39,7 +39,8 @@ button{font:inherit}
   padding-bottom:max(.55rem,env(safe-area-inset-bottom))}
 .barrow{display:flex;align-items:center;gap:.7rem 1.2rem;flex-wrap:wrap}
 .tip{display:flex;flex-wrap:wrap;align-items:center;gap:.25rem .6rem;
-  font-size:.82rem;line-height:1.5;color:#9FC4B2;border-top:1px solid #ffffff12;padding-top:.5rem}
+  font-size:.82rem;line-height:1.5;color:#9FC4B2;border-top:1px solid #ffffff12;padding-top:.5rem;
+  max-height:7.5rem;overflow-y:auto;overscroll-behavior:contain}
 .tip[hidden]{display:none}
 .tip b{color:#EFC677;font-weight:600}
 .tip .sep{color:#ffffff26}
@@ -48,11 +49,11 @@ button{font:inherit}
   filter:none;color:#EDE4CE;vertical-align:-.3em}
 .tip .tile.ink-jade{color:#6FD3A8} .tip .tile.ink-indigo{color:#96B8F2}
 .tip .tile.ink-red{color:#F0958A}  .tip .tile.ink-gold{color:#EFC677}
-.back{color:#A9CCBA;text-decoration:none;font-size:.85rem;white-space:nowrap}
+.back{color:#A9CCBA;text-decoration:none;font-size:.85rem;white-space:nowrap;flex:none}
 .back:hover{color:#fff}
-.hudmeta{margin-left:auto;display:flex;gap:1.1rem;font-size:.78rem;color:#8FB9A6;letter-spacing:.03em}
+.hudmeta{margin-left:auto;display:flex;gap:1.1rem;font-size:.78rem;color:#8FB9A6;letter-spacing:.03em;white-space:nowrap}
 .hudmeta b{color:#EFC677;font-family:var(--zh);font-size:.95rem}
-.hudbtn{padding:.35rem .85rem;border-radius:99px;font-size:.8rem;cursor:pointer;
+.hudbtn{padding:.35rem .85rem;border-radius:99px;font-size:.8rem;cursor:pointer;white-space:nowrap;
   background:transparent;color:#A9CCBA;border:1px solid #ffffff2e}
 .hudbtn:hover{color:#fff;border-color:#ffffff70}
 .msg{font-size:.9rem;color:#BEDACE;flex:1 1 14rem;min-width:0}
@@ -65,7 +66,7 @@ button{font:inherit}
 .acts button.sec:hover{color:#fff;border-color:#ffffff70}
 
 /* ── board ───────────────────────────────────── */
-.board{flex:1 1 auto;position:relative;min-height:0;background:#062018;overflow:hidden}
+.board{flex:1 1 auto;position:relative;min-height:44dvh;background:#062018;overflow:hidden}
 #felt{position:absolute;border-radius:1.1rem;
   background:radial-gradient(120% 100% at 50% 40%,#14654e 0%,var(--felt) 50%,#093a2e 100%);
   box-shadow:0 0 0 1px #ffffff1a,0 0 0 7px #05231Bcc,inset 0 0 70px rgba(0,0,0,.42);
@@ -138,6 +139,18 @@ button{font:inherit}
 .panel .acts button:hover{background:var(--felt-2);border-color:var(--felt-2)}
 .panel .acts button.sec{background:#fff;color:var(--ink);border-color:var(--line)}
 
+@media (max-width:620px){
+  .hud,.bar{padding-left:.6rem;padding-right:.6rem;gap:.4rem .7rem}
+  .wide{display:none}
+  .hudmeta{gap:.7rem;font-size:.74rem}
+  .msg{flex-basis:100%}
+  .tip{font-size:.78rem;max-height:5.5rem}
+  .tip .tile{font-size:1.3rem}
+  .chip{padding:.26rem .5rem;font-size:.66rem;gap:.3rem}
+  .chip .nm{display:none}
+  .c0,.c1{bottom:.45rem} .c2,.c3{top:.45rem}
+  .c0,.c3{left:.45rem}   .c1,.c2{right:.45rem}
+}
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important}
 }
@@ -146,9 +159,9 @@ button{font:inherit}
 <body>
 <div class="app">
   <header class="hud">
-    <a class="back" href="./">← Back to the guide</a>
+    <a class="back" href="./">←<span class="wide"> Back to the</span> Guide</a>
     <div class="hudmeta">
-      <span>Round <b>東</b> East</span>
+      <span class="wide">Round <b>東</b> East</span>
       <span id="wallct">—</span>
     </div>
     <button class="hudbtn" id="hintbtn">Hints on</button>
@@ -253,9 +266,18 @@ function positions(g){
   });
 
   for(let s=0;s<4;s++){
-    const up=(s===0), hs=up?g.tw*1.03:g.tw*0.6;
+    const up=(s===0);
     const h=W.hand[s].slice(), d=W.drawn[s];
     const n=h.length+(d?1:0);
+    let hs=up?g.tw*1.03:g.tw*0.6;
+    if(up&&n>1){
+      /* your hand is the only full-width row, so tighten it until both ends
+         clear the corner seat chips rather than sliding underneath them */
+      const chip=Math.max(el("chip0").offsetWidth||0,el("chip1").offsetWidth||0);
+      const avail=g.Wd-2*(chip+g.tw*0.9)-g.tw;
+      const wide=(n-1)*hs+(d?hs*0.42:0);
+      if(avail>g.tw*3&&wide>avail)hs=Math.max(g.tw*0.5,avail/((n-1)+(d?0.42:0)));
+    }
     h.forEach((inst,i)=>{
       const p=at(s,(i-(n-1)/2)*hs,0,g);
       set(inst,Object.assign(p,{sc:1,face:up||W.over,z:30,op:1}));
@@ -344,10 +366,16 @@ function tipFor(live){
     keeps.forEach(b=>t.append(group(blockTiles(b))));
   }
   if(a.pick.accept.length){
+    /* far from ready almost everything helps, and naming 90 tiles helps nobody */
+    const listy=a.sh<=2, show=a.pick.accept.slice(0,12);
     t.append(dot(),words(a.sh===0
       ? "<b>"+a.pick.live+"</b> tiles still win it:"
-      : "<b>"+a.pick.live+"</b> live tiles improve it:"));
-    a.pick.accept.forEach(x=>t.append(gl(x.t)));
+      : "<b>"+a.pick.live+"</b> live tiles improve it"+(listy?":":".")));
+    if(listy){
+      show.forEach(x=>t.append(gl(x.t)));
+      if(a.pick.accept.length>show.length)
+        t.append(words("+"+(a.pick.accept.length-show.length)+" more"));
+    }
   }else t.append(dot(),words("nothing left in the wall improves it — play for a washout."));
   t.hidden=false;
 }
@@ -385,8 +413,10 @@ function claimTip(t){
   t.hidden=false;
 }
 
+let paintedAt="";
 function paint(){
   const g=geom();
+  paintedAt=board.clientWidth+"x"+board.clientHeight;
   board.style.setProperty("--tw",g.tw+"px");
   board.style.setProperty("--th",g.th+"px");
   const f=el("felt").style;
@@ -431,7 +461,8 @@ function paint(){
   for(let s=0;s<4;s++){
     const c=el("chip"+s);
     c.className="chip c"+s+((W.turn===s&&!W.over&&!W.busy)?" on":"");
-    c.innerHTML='<span class="dot"></span>'+SEATS[s].n+' <span class="zh">'+SEATS[s].zh+'</span><em>'+full(s).length+'</em>';
+    c.innerHTML='<span class="dot"></span><span class="nm">'+SEATS[s].n
+      +'</span><span class="zh">'+SEATS[s].zh+'</span><em>'+full(s).length+'</em>';
   }
   el("wallct").textContent=W.wall.length+" in the wall";
   bar();
@@ -702,7 +733,7 @@ function showPanel(){
 makeNodes();
 el("newbtn").onclick=startRound;
 const hintBtn=el("hintbtn");
-function drawHintBtn(){hintBtn.textContent=HINTS?"Hints on":"Hints off"}
+function drawHintBtn(){hintBtn.textContent=HINTS?"Hints on":"Hints off";hintBtn.setAttribute("aria-pressed",HINTS)}
 hintBtn.onclick=()=>{
   HINTS=!HINTS;
   try{localStorage.setItem("mj-hints",HINTS?"on":"off")}catch(e){}
@@ -710,6 +741,13 @@ hintBtn.onclick=()=>{
 };
 drawHintBtn();
 addEventListener("resize",()=>{if(W)paint()});
+/* the hint panel grows and shrinks the board under us, and content reflow
+   fires no resize event — so watch the board itself and lay out again */
+if(typeof ResizeObserver!=="undefined"){
+  new ResizeObserver(()=>{
+    if(W&&board.clientWidth+"x"+board.clientHeight!==paintedAt)paint();
+  }).observe(board);
+}
 startRound();
 </script>
 </body>
