@@ -229,7 +229,7 @@ function geom(){
   let Wd=bw,H=bh;
   if(r>1.55)      Wd=bh*1.55;   // very wide screen: trim the table's width
   else if(r<0.62) H=bw/0.62;    // tall phone: trim its height
-  const tw=Math.max(16,Math.min(44,Math.min(Wd/22,H/16)));
+  const tw=Math.max(18,Math.min(50,Math.min(Wd/19.5,H/14)));
   return {ox:(bw-Wd)/2, oy:(bh-H)/2, Wd:Wd, H:H, tw:tw, th:tw*1.38, pad:tw*0.6};
 }
 const AXIS=[{a:"x",s:1},{a:"y",s:-1},{a:"x",s:-1},{a:"y",s:1}];
