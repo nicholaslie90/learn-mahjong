@@ -140,47 +140,18 @@ footer a{color:var(--ink)}
 .pats li{display:flex;justify-content:space-between;gap:1rem;border-bottom:1px solid var(--line);padding:.38rem 0;font-size:.93rem}
 .ghost{font:inherit;font-size:.85rem;padding:.42rem .95rem;border-radius:99px;border:1px solid var(--line);background:#fff;cursor:pointer}
 .ghost:hover{border-color:var(--ink-2)}
-.row .gap{width:1.1rem;flex:none}
-
-/* ── the table ───────────────────────────────── */
-.tbl{border:1px solid var(--line);border-radius:.8rem;overflow:hidden;background:var(--paper-2);margin-top:1.7rem}
-.tbar{display:flex;flex-wrap:wrap;gap:.3rem 1.5rem;padding:.7rem 1.1rem;background:var(--felt);color:#BEDACE;font-size:.79rem;letter-spacing:.03em}
-.tbar b{color:#EFC677;font-family:var(--zh);font-size:.95rem}
-.opps{display:grid;gap:1px;background:var(--line);grid-template-columns:1fr}
-@media(min-width:760px){.opps{grid-template-columns:repeat(3,1fr)}}
-.opp{background:#EFE7D3;padding:.75rem .9rem;min-height:6.6rem}
-.opp.active{background:#E1F0E7;box-shadow:inset 3px 0 0 var(--jade)}
-.tbl h4{margin:0 0 .4rem;font:600 .72rem/1 var(--body);letter-spacing:.13em;text-transform:uppercase;color:var(--ink-2);display:flex;gap:.45rem;align-items:baseline}
-.tbl h4 span{font-family:var(--zh);color:var(--gold);letter-spacing:0;font-size:1rem}
-.tbl h4 em{margin-left:auto;font-style:normal;color:var(--ink-3);font-variant-numeric:tabular-nums}
-.backs{display:flex;flex-wrap:wrap}
-.backs .tile{--ts:1.6rem;color:#a3aea7;filter:none;margin-right:-.42rem}
-.meldrow{display:flex;flex-wrap:wrap;gap:.05rem;margin-top:.35rem}
-.meldrow .tile{--ts:1.9rem}
-.meldrow.flow .tile{--ts:1.55rem;opacity:.85}
-.riverwrap{padding:.9rem 1.1rem;background:#E9E0C8;border-top:1px solid var(--line)}
-.river{display:flex;flex-wrap:wrap;gap:.06rem;min-height:3rem;align-items:flex-start}
-.river .tile{--ts:2.1rem}
-.river .last{outline:2px solid var(--gold);outline-offset:-2px;border-radius:.25rem}
-.you{padding:.9rem 1.1rem;border-top:1px solid var(--line)}
-.you.active{background:#E1F0E7;box-shadow:inset 3px 0 0 var(--jade)}
-.myhand{display:flex;flex-wrap:wrap;gap:.1rem;margin-top:.5rem;align-items:flex-end}
-.myhand .tile{--ts:clamp(2.8rem,7vw,4.2rem)}
-.myhand button:disabled{cursor:default}
-.myhand button:not(:disabled){cursor:pointer}
-.myhand button:disabled{opacity:.75}
-.myhand{min-height:4.6rem}
-.acts{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;padding:0 1.1rem 1.1rem}
-.acts button{font:600 .88rem var(--body);padding:.5rem 1.15rem;border-radius:99px;border:1px solid var(--felt);background:var(--felt);color:#fff;cursor:pointer}
-.acts button:hover{background:var(--felt-2)}
-.acts button.sec{background:#fff;color:var(--ink);border-color:var(--line);font-weight:400}
-.acts button.sec:hover{border-color:var(--ink-2)}
-.acts .hint{color:var(--ink-2);font-size:.89rem}
-.glog span{display:block}
-.glog span+span{color:var(--ink-3)}
-.glog{margin:0;padding:.65rem 1.1rem;border-top:1px solid var(--line);font-size:.84rem;color:var(--ink-2);background:#00000006;min-height:2.3rem}
-.result{padding:1.1rem;border-top:1px solid var(--line);background:#F7F1E1}
-.result .tile{--ts:2.4rem}
+/* ── play-page invitation ────────────────────── */
+.playcard{display:flex;flex-wrap:wrap;align-items:center;gap:1.1rem 1.6rem;margin-top:1.7rem;
+  padding:1.5rem 1.6rem;border-radius:.9rem;text-decoration:none;color:var(--paper-2);
+  background:radial-gradient(120% 160% at 12% 0%,#14614c 0%,var(--felt) 52%,var(--felt-2) 100%);
+  box-shadow:0 14px 34px rgba(6,43,34,.28);transition:transform .22s cubic-bezier(.2,.8,.3,1),box-shadow .22s}
+.playcard:hover,.playcard:focus-visible{transform:translateY(-3px);box-shadow:0 20px 44px rgba(6,43,34,.34)}
+.playcard .pcT{display:flex;gap:.06rem}
+.playcard .pcT .tile{--ts:3.2rem;filter:drop-shadow(0 3px 4px rgba(0,0,0,.35))}
+.playcard .pcW{flex:1 1 12rem}
+.playcard .pcW b{display:block;font-family:var(--display);font-size:1.45rem;font-variation-settings:'WONK' 1;color:#fff}
+.playcard .pcW span{display:block;margin-top:.2rem;font-size:.9rem;color:#A9CCBA}
+.playcard .pcGo{flex:none;font-weight:600;font-size:.95rem;color:#EFC677;white-space:nowrap}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
 </style>
 </head>
@@ -308,17 +279,14 @@ footer a{color:var(--ink)}
 <section id="table"><div class="wrap">
   <span class="mark">開枱</span>
   <h2>Play a round</h2>
-  <p class="sub">You're East, the dealer, against three bots. Draw, discard, and call when you can — the buttons appear only when a call is legal, and a bot's pung will outrank your chow just like at a real table.</p>
-  <div class="tbl">
-    <div class="tbar" id="tbar"></div>
-    <div class="opps" id="opps"></div>
-    <div class="riverwrap"><div class="river" id="river"></div></div>
-    <div class="you" id="you"></div>
-    <div class="acts" id="acts"></div>
-    <p class="glog" id="glog"></p>
-    <div id="gresult"></div>
-  </div>
-  <p style="margin-top:1rem;color:var(--ink-3);font-size:.88rem">Practice table: no minimum faan, so chicken hands count. Concealed and added kongs sit this one out — you can only kong on a discard.</p>
+  <p class="sub">Sit down at a full table. You're East, the dealer, against three bots — tiles deal, draw and discard where you'd expect them to, and a call button appears only when that call is legal. Every turn it also tells you which tile to throw and why.</p>
+  <a class="playcard" href="play.html">
+    <span class="pcT">
+      <span class="tile ink-ink">🀇</span><span class="tile ink-jade">🀔</span><span class="tile ink-indigo">🀝</span><span class="tile ink-red">🀄︎</span><span class="tile ink-ink">🀀</span>
+    </span>
+    <span class="pcW"><b>Open the table</b><span>Full screen · four seats · a coach on every turn</span></span>
+    <span class="pcGo">Deal me in →</span>
+  </a>
 </div></section>
 
 <section id="practice"><div class="wrap">
@@ -344,49 +312,10 @@ footer a{color:var(--ink)}
   Hong Kong old style. Built as a single static page — <a href="https://github.com/nicholaslie90/learn-mahjong">source on GitHub</a>. Tiles are Unicode glyphs (U+1F000–U+1F02B); if they look plain, your system font is drawing them.
 </div></footer>
 
+<script src="mahjong.js"></script>
 <script>
 "use strict";
-/* ── tile model ───────────────────────────────────────────── */
-const SUIT = {
-  m:{label:"Characters", zh:"萬", cp:0x1F007, ink:"ink",    hint:"the number, then 萬"},
-  s:{label:"Bamboo",     zh:"索", cp:0x1F010, ink:"jade",   hint:"count the sticks — 1 is a bird"},
-  p:{label:"Circles",    zh:"筒", cp:0x1F019, ink:"indigo", hint:"count the dots"}
-};
-const NUM = ["One","Two","Three","Four","Five","Six","Seven","Eight","Nine"];
-const ZHN = ["一","二","三","四","五","六","七","八","九"];
-const HONOR = {
-  E:{cp:0x1F000,label:"East Wind",   zh:"東",ink:"ink",   grp:"wind"},
-  S:{cp:0x1F001,label:"South Wind",  zh:"南",ink:"ink",   grp:"wind"},
-  W:{cp:0x1F002,label:"West Wind",   zh:"西",ink:"ink",   grp:"wind"},
-  N:{cp:0x1F003,label:"North Wind",  zh:"北",ink:"ink",   grp:"wind"},
-  C:{cp:0x1F004,label:"Red Dragon",  zh:"中",ink:"red",   grp:"dragon"},
-  F:{cp:0x1F005,label:"Green Dragon",zh:"發",ink:"jade",  grp:"dragon"},
-  B:{cp:0x1F006,label:"White Dragon",zh:"白",ink:"indigo",grp:"dragon"}
-};
-const BONUS = {
-  b1:{cp:0x1F022,label:"Plum flower",  zh:"梅"}, b2:{cp:0x1F023,label:"Orchid flower",zh:"蘭"},
-  b3:{cp:0x1F024,label:"Bamboo flower",zh:"竹"}, b4:{cp:0x1F025,label:"Chrysanthemum flower",zh:"菊"},
-  b5:{cp:0x1F026,label:"Spring season",zh:"春"}, b6:{cp:0x1F027,label:"Summer season",zh:"夏"},
-  b7:{cp:0x1F028,label:"Autumn season",zh:"秋"}, b8:{cp:0x1F029,label:"Winter season",zh:"冬"}
-};
-function info(id){
-  if(HONOR[id]) return HONOR[id];
-  if(BONUS[id]) return Object.assign({ink:"gold",grp:"bonus"},BONUS[id]);
-  const n=+id[0], s=SUIT[id[1]];
-  return {cp:s.cp+n-1, label:NUM[n-1]+" "+s.label, zh:ZHN[n-1]+s.zh, ink:s.ink, grp:"suit"};
-}
-/* U+1F004 defaults to emoji presentation; VS15 forces the flat tile glyph. */
-function glyph(id){ const c=info(id).cp; return String.fromCodePoint(c)+(c===0x1F004?"︎":""); }
-function tileEl(id,opts){
-  opts=opts||{};
-  const i=info(id), el=document.createElement("span");
-  el.className="tile ink-"+i.ink+(opts.lift?" lift":"");
-  el.textContent=glyph(id);
-  el.setAttribute("role","img");
-  el.setAttribute("aria-label",i.label);
-  if(opts.i!=null) el.style.setProperty("--i",opts.i);
-  return el;
-}
+/* ── page pieces ───────────────────────────────────────────── */
 const rowEl=(ids,opts)=>{const d=document.createElement("div");d.className="row";ids.forEach((id,n)=>d.append(tileEl(id,Object.assign({i:n},opts))));return d;};
 
 /* ── hero: a finished hand ────────────────────────────────── */
@@ -448,11 +377,6 @@ const MELDNAME=["Chow <span>上</span>","Pung <span>碰</span>","Chow <span>上<
 })();
 
 /* ── practice ─────────────────────────────────────────────── */
-const SUITED=["m","s","p"].flatMap(k=>[1,2,3,4,5,6,7,8,9].map(n=>n+k));
-const HONORS=Object.keys(HONOR);
-const ALL=SUITED.concat(HONORS);
-const pick=a=>a[Math.random()*a.length|0];
-const shuffle=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
 const g=id=>'<span class="tile ink-'+info(id).ink+'">'+glyph(id)+'</span>';
 
 function qName(){
@@ -555,7 +479,6 @@ function qFaan(){
 const MODES=[["Name the tile",qName],["Chow, pung or nothing",qSet],["Can you claim it?",qClaim],["Score the hand",qFaan]];
 let mode=0, asked=0, right=0, streak=0, best=0, current=null;
 
-const el=id=>document.getElementById(id);
 (function(){
   const host=el("modes");
   MODES.forEach(([label],i)=>{
@@ -604,123 +527,11 @@ deal();
 </script>
 <script>
 "use strict";
-/* ══ hand analysis — shared by the builder and the table ══════════════════ */
-const ORDER=SUITED.concat(HONORS), IDX={};
-ORDER.forEach((id,i)=>{IDX[id]=i});
-const bySort=(a,b)=>IDX[a]-IDX[b];
-function counts(ts){const c=new Array(34).fill(0);ts.forEach(t=>{c[IDX[t]]++});return c;}
-/* every way to carve the counts into complete sets, consuming every tile */
-function walkSets(c,i,cur,out){
-  while(i<34&&c[i]===0)i++;
-  if(i===34){out.push(cur.slice());return;}
-  if(c[i]>=3){c[i]-=3;cur.push({type:"pung",tiles:[ORDER[i],ORDER[i],ORDER[i]]});walkSets(c,i,cur,out);cur.pop();c[i]+=3;}
-  if(i<27&&i%9<=6&&c[i+1]>0&&c[i+2]>0){c[i]--;c[i+1]--;c[i+2]--;
-    cur.push({type:"chow",tiles:[ORDER[i],ORDER[i+1],ORDER[i+2]]});walkSets(c,i,cur,out);cur.pop();
-    c[i]++;c[i+1]++;c[i+2]++;}
-}
-/* most sets extractable, leftovers allowed — for the "how close am I" readout */
-function maxSets(c,i){
-  while(i<34&&c[i]===0)i++;
-  if(i===34)return 0;
-  let b=maxSets(c,i+1);
-  if(c[i]>=3){c[i]-=3;b=Math.max(b,1+maxSets(c,i));c[i]+=3;}
-  if(i<27&&i%9<=6&&c[i+1]>0&&c[i+2]>0){c[i]--;c[i+1]--;c[i+2]--;b=Math.max(b,1+maxSets(c,i));c[i]++;c[i+1]++;c[i+2]++;}
-  return b;
-}
-const ORPHANS=["1m","9m","1s","9s","1p","9p"].concat(HONORS);
-function orphanWin(ts){
-  if(ts.length!==14||!ts.every(t=>ORPHANS.indexOf(t)>=0))return false;
-  return new Set(ts).size===13;
-}
-/* concealed tiles + already-melded sets -> every winning decomposition */
-function findWin(hand,melds){
-  melds=melds||[];
-  if(!melds.length&&orphanWin(hand))return [{orphans:true,pair:null,sets:[]}];
-  const need=4-melds.length;
-  if(hand.length!==need*3+2)return [];
-  const c=counts(hand),res=[];
-  for(let p=0;p<34;p++){
-    if(c[p]<2)continue;
-    c[p]-=2;const out=[];walkSets(c,0,[],out);c[p]+=2;
-    out.forEach(st=>{if(st.length===need)res.push({pair:ORDER[p],sets:st})});
-  }
-  return res;
-}
-const UNITS=[1,2,4,8,16,24,32,48,64,96];
-const units=f=>f>=10?128:UNITS[f];
-
-function scoreWin(d,melds,ctx){
-  const pats=[],add=(n,zh,f)=>pats.push({n:n,zh:zh,f:f});
-  if(d.orphans) add("Thirteen orphans","十三么",13);
-  else{
-    const all=melds.concat(d.sets);
-    const tiles=all.reduce((a,m)=>a.concat(m.tiles),[]).concat([d.pair,d.pair]);
-    const suits=new Set(tiles.filter(t=>!HONOR[t]).map(t=>t[1]));
-    const honor=tiles.some(t=>HONOR[t]);
-    const pungs=all.filter(m=>m.type!=="chow");
-    const dr=pungs.filter(m=>HONOR[m.tiles[0]]&&HONOR[m.tiles[0]].grp==="dragon");
-    const wp=pungs.filter(m=>HONOR[m.tiles[0]]&&HONOR[m.tiles[0]].grp==="wind");
-    const pairH=HONOR[d.pair];
-    if(wp.length===4) add("Big four winds","大四喜",13);
-    else if(wp.length===3&&pairH&&pairH.grp==="wind") add("Small four winds","小四喜",10);
-    if(!suits.size) add("All honours","字一色",10);
-    if(dr.length===3) add("Big three dragons","大三元",8);
-    else if(dr.length===2&&pairH&&pairH.grp==="dragon") add("Small three dragons","小三元",5);
-    else dr.forEach(m=>add("Dragon pung "+info(m.tiles[0]).zh,"三元牌",1));
-    if(suits.size===1) add(honor?"Half flush":"Full flush",honor?"混一色":"清一色",honor?3:7);
-    if(pungs.length===4) add("All pungs","碰碰糊",3);
-    wp.forEach(m=>{
-      if(m.tiles[0]===ctx.seatWind) add("Seat wind pung","門風",1);
-      if(m.tiles[0]===ctx.roundWind) add("Round wind pung","圈風",1);
-    });
-  }
-  if(ctx.selfDraw) add("Self-draw","自摸",1);
-  if(ctx.concealed) add("Fully concealed","門前清",1);
-  for(let i=0;i<(ctx.bonusMatch||0);i++) add("Matching flower","花牌",1);
-  if(ctx.bonusCount===0) add("No flowers","無花",1);
-  return {pats:pats,faan:pats.reduce((a,p)=>a+p.f,0)};
-}
-/* best-scoring reading of a winning hand, or null if it isn't one */
-function analyze(hand,melds,ctx){
-  const ds=findWin(hand,melds);
-  if(!ds.length)return null;
-  let best=null;
-  ds.forEach(d=>{const sc=scoreWin(d,melds,ctx);if(!best||sc.faan>best.score.faan)best={d:d,score:sc}});
-  return best;
-}
-function patList(sc){
-  const ul=document.createElement("ul");ul.className="pats";
-  sc.pats.forEach(p=>{
-    const li=document.createElement("li");
-    li.innerHTML='<span>'+p.n+' <span class="zh" style="color:var(--gold)">'+p.zh+'</span></span><b>'+p.f+' faan</b>';
-    ul.append(li);
-  });
-  const t=document.createElement("li");t.style.borderBottom="0";
-  t.innerHTML='<span><b>Total</b></span><b>'+sc.faan+' faan · '+units(sc.faan)+' units</b>';
-  ul.append(t);return ul;
-}
-function meldRow(sets,pair){
-  const r=document.createElement("div");r.className="row";r.style.gap=".9rem";
-  sets.concat(pair?[{type:"pair",tiles:[pair,pair]}]:[]).forEach(m=>{
-    const f=document.createElement("figure");f.className="meld";f.style.margin="0";
-    const rr=document.createElement("div");rr.className="row";
-    m.tiles.forEach(t=>rr.append(tileEl(t)));
-    const c=document.createElement("figcaption");c.textContent=m.type;
-    f.append(rr,c);r.append(f);
-  });
-  return r;
-}
-
 /* ══ builder ═════════════════════════════════════════════════════════════ */
 let BH=[];
 function bAdd(t){
   if(BH.length>=14||BH.filter(x=>x===t).length>=4)return;
   BH.push(t);BH.sort(bySort);bRender();
-}
-function waitsFor(h){
-  const c=counts(h),w=[];
-  ORDER.forEach(t=>{if(c[IDX[t]]<4&&findWin(h.concat([t]),[]).length)w.push(t)});
-  return w;
 }
 function randomHand(n){
   for(let tr=0;tr<500;tr++){
@@ -823,256 +634,6 @@ function bRender(){
   bRender();
 })();
 
-/* ══ play a round ════════════════════════════════════════════════════════ */
-const SEATS=[{w:"E",zh:"東",n:"You"},{w:"S",zh:"南",n:"Right"},{w:"W",zh:"西",n:"Across"},{w:"N",zh:"北",n:"Left"}];
-const ROUND="E", RANK={win:3,kong:2,pung:2,chow:1};
-const dist=(f,s)=>((s-f)+4)%4;
-let G=null;
-function say(m){G.log.unshift(m);G.log=G.log.slice(0,3)}
-const vb=(s,v)=>SEATS[s].n+" "+v+(s===0?"":"s");
-function flowers(s){
-  for(;;){
-    const i=G.hand[s].findIndex(t=>BONUS[t]);
-    if(i<0||!G.wall.length)return;
-    G.flow[s].push(G.hand[s].splice(i,1)[0]);
-    G.hand[s].push(G.wall.pop());
-  }
-}
-function ctxFor(s,sd){
-  return {seatWind:SEATS[s].w,roundWind:ROUND,selfDraw:!!sd,concealed:G.meld[s].length===0,
-    bonusCount:G.flow[s].length,
-    bonusMatch:G.flow[s].filter(b=>+b[1]===s+1||+b[1]===s+5).length};
-}
-function startRound(){
-  const wall=[];
-  ALL.forEach(t=>{for(let i=0;i<4;i++)wall.push(t)});
-  Object.keys(BONUS).forEach(t=>wall.push(t));
-  G={wall:shuffle(wall),hand:[[],[],[],[]],meld:[[],[],[],[]],flow:[[],[],[],[]],
-     river:[],turn:0,phase:"",pend:null,canWin:null,over:false,result:null,log:[]};
-  for(let i=0;i<13;i++)for(let s=0;s<4;s++)G.hand[s].push(G.wall.shift());
-  for(let s=0;s<4;s++){flowers(s);G.hand[s].sort(bySort)}
-  say("Dealt. You are East 東, the dealer.");
-  beginTurn(0);
-}
-function beginTurn(s){
-  if(G.over)return;
-  if(!G.wall.length)return endRound(null);
-  G.turn=s;G.pend=null;
-  G.hand[s].push(G.wall.shift());flowers(s);G.hand[s].sort(bySort);
-  const w=analyze(G.hand[s],G.meld[s],ctxFor(s,true));
-  if(w&&s!==0)return endRound({seat:s,by:null,a:w,tile:null});
-  G.canWin=(s===0)?w:null;
-  G.phase="discard";
-  gRender();
-  if(s!==0)setTimeout(()=>botDiscard(s),560);
-}
-function tileValue(s,t,c){
-  const i=IDX[t];let v=0;
-  if(c[i]>=3)v+=100;else if(c[i]===2)v+=45;
-  if(i<27){
-    const n=i%9;
-    if(n>0&&c[i-1])v+=25;
-    if(n<8&&c[i+1])v+=25;
-    if(n>1&&c[i-2])v+=12;
-    if(n<7&&c[i+2])v+=12;
-    v+=6-Math.abs(4-n);
-  }else{
-    if(HONOR[t].grp==="dragon")v+=9;
-    if(t===SEATS[s].w||t===ROUND)v+=7;
-  }
-  return v;
-}
-function botDiscard(s){
-  if(G.over)return;
-  const c=counts(G.hand[s]);
-  let bt=null,bv=Infinity;
-  shuffle(G.hand[s]).forEach(t=>{const v=tileValue(s,t,c);if(v<bv){bv=v;bt=t}});
-  doDiscard(s,bt);
-}
-function claimOptions(p,from,tile){
-  const o=[],c=counts(G.hand[p]);
-  if(analyze(G.hand[p].concat([tile]),G.meld[p],ctxFor(p,false)))o.push({k:"win"});
-  if(c[IDX[tile]]>=3)o.push({k:"kong"});
-  if(c[IDX[tile]]>=2)o.push({k:"pung"});
-  if(p===(from+1)%4&&!HONOR[tile]){
-    const i=IDX[tile],n=i%9;
-    [[-2,-1],[-1,1],[1,2]].forEach(d=>{
-      const a=n+d[0],b=n+d[1];
-      if(a<0||a>8||b<0||b>8)return;
-      if(c[i+d[0]]>0&&c[i+d[1]]>0)o.push({k:"chow",with:[ORDER[i+d[0]],ORDER[i+d[1]]]});
-    });
-  }
-  return o;
-}
-function botPick(p,o,tile){
-  const w=o.find(x=>x.k==="win");if(w)return w;
-  const h=HONOR[tile],strong=!!h&&(h.grp==="dragon"||tile===SEATS[p].w||tile===ROUND);
-  const k=o.find(x=>x.k==="kong");if(k&&(strong||Math.random()<.55))return k;
-  const pu=o.find(x=>x.k==="pung");if(pu&&(strong||Math.random()<.4))return pu;
-  const ch=o.filter(x=>x.k==="chow");if(ch.length&&Math.random()<.28)return pick(ch);
-  return null;
-}
-function doDiscard(s,t){
-  G.hand[s].splice(G.hand[s].indexOf(t),1);
-  G.river.push({t:t,s:s});
-  G.canWin=null;G.phase="";
-  say(vb(s,"discard")+" the "+info(t).label+".");
-  const bots=[];
-  for(let p=1;p<4;p++){
-    if(p===s)continue;
-    const c=botPick(p,claimOptions(p,s,t),t);
-    if(c)bots.push(Object.assign({seat:p},c));
-  }
-  const mine=(s!==0)?claimOptions(0,s,t):[];
-  if(mine.length){G.pend={from:s,tile:t,bots:bots,opts:mine};G.phase="claim";gRender();return}
-  gRender();
-  setTimeout(()=>settle(s,t,bots,null),430);
-}
-function settle(from,tile,bots,mine){
-  if(G.over)return;
-  G.pend=null;
-  const all=bots.concat(mine?[Object.assign({seat:0},mine)]:[]);
-  if(!all.length)return beginTurn((from+1)%4);
-  all.sort((a,b)=>(RANK[b.k]-RANK[a.k])||(dist(from,a.seat)-dist(from,b.seat)));
-  const w=all[0];
-  if(mine&&w.seat!==0)say("Your "+mine.k+" is outranked by "+SEATS[w.seat].n+"'s "+w.k+".");
-  G.river.pop();
-  if(w.k==="win"){
-    const a=analyze(G.hand[w.seat].concat([tile]),G.meld[w.seat],ctxFor(w.seat,false));
-    return endRound({seat:w.seat,by:from,a:a,tile:tile});
-  }
-  applyMeld(w.seat,w,tile);
-  say(vb(w.seat,"call")+" "+w.k+" on the "+info(tile).label+".");
-  G.turn=w.seat;G.phase="discard";
-  const w2=analyze(G.hand[w.seat],G.meld[w.seat],ctxFor(w.seat,true));
-  if(w2&&w.seat!==0)return endRound({seat:w.seat,by:null,a:w2,tile:null});
-  G.canWin=(w.seat===0)?w2:null;
-  gRender();
-  if(w.seat!==0)setTimeout(()=>botDiscard(w.seat),620);
-}
-function applyMeld(s,w,tile){
-  const rm=t=>{const i=G.hand[s].indexOf(t);if(i>=0)G.hand[s].splice(i,1)};
-  if(w.k==="chow"){w.with.forEach(rm);G.meld[s].push({type:"chow",tiles:[w.with[0],tile,w.with[1]].sort(bySort)})}
-  else if(w.k==="pung"){rm(tile);rm(tile);G.meld[s].push({type:"pung",tiles:[tile,tile,tile]})}
-  else{rm(tile);rm(tile);rm(tile);G.meld[s].push({type:"kong",tiles:[tile,tile,tile,tile]});
-       if(G.wall.length){G.hand[s].push(G.wall.pop());flowers(s)}}
-  G.hand[s].sort(bySort);
-}
-function endRound(r){
-  G.over=true;G.phase="over";G.pend=null;G.canWin=null;G.result=r;
-  say(r?SEATS[r.seat].n+(r.seat===0?" win.":" wins."):"Wall exhausted — washout.");
-  gRender();
-}
-function resultCard(){
-  const d=document.createElement("div");d.className="result";
-  const r=G.result;
-  if(!r){
-    d.innerHTML='<h3>Washout <span class="zh" style="color:var(--gold)">流局</span></h3><p style="margin:.4rem 0 0;color:var(--ink-2)">The wall ran out before anyone finished. Nobody pays.</p>';
-    return d;
-  }
-  d.innerHTML='<h3>'+SEATS[r.seat].n+(r.seat===0?" win":" wins")+' <span class="zh" style="color:var(--gold)">食糊</span></h3>';
-  const row=document.createElement("div");row.className="row";row.style.margin=".8rem 0";
-  G.meld[r.seat].forEach(m=>{
-    m.tiles.forEach(t=>row.append(tileEl(t)));
-    const gp=document.createElement("span");gp.className="gap";row.append(gp);
-  });
-  G.hand[r.seat].concat(r.tile?[r.tile]:[]).sort(bySort).forEach(t=>row.append(tileEl(t)));
-  d.append(row,patList(r.a.score));
-  const p=document.createElement("p");
-  p.style.cssText="margin:.8rem 0 0;color:var(--ink-2);font-size:.92rem";
-  p.textContent=r.tile
-    ? SEATS[r.by].n+" fed the winning tile, so "+(r.by===0?"you pay":SEATS[r.by].n+" pays")+" all "+units(r.a.score.faan)+" units alone."
-    : "Self-drawn, so all three opponents pay "+units(r.a.score.faan)+" units each.";
-  d.append(p);
-  return d;
-}
-function gRender(){
-  if(!G)return;
-  el("tbar").innerHTML='<span>Round <b>東</b> East</span><span>You are <b>東</b> East · dealer</span><span>'+G.wall.length+' tiles left in the wall</span>';
-  const o=el("opps");o.replaceChildren();
-  [3,2,1].forEach(s=>{
-    const d=document.createElement("div");
-    d.className="opp"+((G.turn===s&&!G.over)?" active":"");
-    const h=document.createElement("h4");
-    h.innerHTML=SEATS[s].n+' <span>'+SEATS[s].zh+'</span><em>'+G.hand[s].length+'</em>';
-    d.append(h);
-    const b=document.createElement("div");b.className="backs";
-    for(let i=0;i<G.hand[s].length;i++){const t=document.createElement("span");t.className="tile";t.textContent="🀫";b.append(t)}
-    d.append(b);
-    G.meld[s].forEach(m=>{
-      const r=document.createElement("div");r.className="meldrow";
-      m.tiles.forEach(t=>r.append(tileEl(t)));d.append(r);
-    });
-    if(G.flow[s].length){
-      const r=document.createElement("div");r.className="meldrow flow";
-      G.flow[s].forEach(t=>r.append(tileEl(t)));d.append(r);
-    }
-    o.append(d);
-  });
-  const rv=el("river");rv.replaceChildren();
-  if(!G.river.length){const e=document.createElement("span");e.className="empty";e.textContent="No discards yet.";rv.append(e)}
-  G.river.forEach((x,i)=>{
-    const e=tileEl(x.t);
-    if(i===G.river.length-1)e.classList.add("last");
-    e.setAttribute("aria-label",SEATS[x.s].n+" discarded "+info(x.t).label);
-    rv.append(e);
-  });
-  const y=el("you");y.replaceChildren();
-  y.className="you"+((G.turn===0&&!G.over)?" active":"");
-  const yh=document.createElement("h4");
-  yh.innerHTML='Your hand <span>東</span><em>'+G.hand[0].length+'</em>';
-  y.append(yh);
-  G.meld[0].forEach(m=>{
-    const r=document.createElement("div");r.className="meldrow";
-    m.tiles.forEach(t=>r.append(tileEl(t)));y.append(r);
-  });
-  if(G.flow[0].length){
-    const r=document.createElement("div");r.className="meldrow flow";
-    G.flow[0].forEach(t=>r.append(tileEl(t)));y.append(r);
-  }
-  const live=!G.over&&G.phase==="discard"&&G.turn===0;
-  const hand=document.createElement("div");hand.className="myhand";
-  G.hand[0].forEach(t=>{
-    const b=document.createElement("button");
-    b.type="button";b.className="tile ink-"+info(t).ink+(live?" lift":"");
-    b.textContent=glyph(t);b.disabled=!live;
-    b.setAttribute("aria-label",(live?"Discard the ":"")+info(t).label);
-    b.onclick=()=>{if(live)doDiscard(0,t)};
-    hand.append(b);
-  });
-  y.append(hand);
-  const a=el("acts");a.replaceChildren();
-  const mk=(label,fn,sec)=>{
-    const b=document.createElement("button");
-    b.type="button";b.textContent=label;
-    if(sec)b.className="sec";
-    b.onclick=fn;a.append(b);
-  };
-  const hint=t=>{const s=document.createElement("span");s.className="hint";s.textContent=t;a.append(s)};
-  if(G.over)mk("Deal a new round",startRound);
-  else if(G.phase==="claim"&&G.pend){
-    const p=G.pend,seen={};
-    hint(SEATS[p.from].n+" discarded the "+info(p.tile).label+" —");
-    p.opts.forEach(op=>{
-      const key=op.k+(op.with?op.with.join(""):"");
-      if(seen[key])return;
-      seen[key]=1;
-      mk(op.k==="win"?"Win 食糊":op.k==="kong"?"Kong 槓":op.k==="pung"?"Pung 碰"
-        :"Chow "+info(op.with[0]).zh+info(op.with[1]).zh,
-        ()=>settle(p.from,p.tile,p.bots,op));
-    });
-    mk("Pass",()=>settle(p.from,p.tile,p.bots,null),true);
-  }
-  else if(live){
-    if(G.canWin)mk("Win 食糊 · "+G.canWin.score.faan+" faan",()=>endRound({seat:0,by:null,a:G.canWin,tile:null}));
-    hint(G.canWin?"…or click a tile to discard.":"Click a tile to discard.");
-  }
-  else hint("Waiting for the other players…");
-  el("glog").replaceChildren(...G.log.map(m=>{const s=document.createElement("span");s.textContent=m;return s}));
-  el("gresult").replaceChildren();
-  if(G.over)el("gresult").append(resultCard());
-}
-startRound();
 </script>
 </body>
 </html>
