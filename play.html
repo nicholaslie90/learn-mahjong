@@ -39,8 +39,7 @@ button{font:inherit}
   padding-bottom:max(.55rem,env(safe-area-inset-bottom))}
 .barrow{display:flex;align-items:center;gap:.7rem 1.2rem;flex-wrap:wrap}
 .tip{display:flex;flex-wrap:wrap;align-items:center;gap:.25rem .6rem;
-  font-size:.82rem;line-height:1.5;color:#9FC4B2;border-top:1px solid #ffffff12;padding-top:.5rem;
-  max-height:7.5rem;overflow-y:auto;overscroll-behavior:contain}
+  font-size:.82rem;line-height:1.5;color:#9FC4B2;border-top:1px solid #ffffff12;padding:.5rem 0 .35rem}
 .tip[hidden]{display:none}
 .tip b{color:#EFC677;font-weight:600}
 .tip .sep{color:#ffffff26}
@@ -66,7 +65,7 @@ button{font:inherit}
 .acts button.sec:hover{color:#fff;border-color:#ffffff70}
 
 /* ── board ───────────────────────────────────── */
-.board{flex:1 1 auto;position:relative;min-height:44dvh;background:#062018;overflow:hidden}
+.board{flex:1 1 auto;position:relative;min-height:min(40dvh,260px);background:#062018;overflow:hidden}
 #felt{position:absolute;border-radius:1.1rem;
   background:radial-gradient(120% 100% at 50% 40%,#14654e 0%,var(--felt) 50%,#093a2e 100%);
   box-shadow:0 0 0 1px #ffffff1a,0 0 0 7px #05231Bcc,inset 0 0 70px rgba(0,0,0,.42);
@@ -144,7 +143,7 @@ button{font:inherit}
   .wide{display:none}
   .hudmeta{gap:.7rem;font-size:.74rem}
   .msg{flex-basis:100%}
-  .tip{font-size:.78rem;max-height:5.5rem}
+  .tip{font-size:.78rem}
   .tip .tile{font-size:1.3rem}
   .chip{padding:.26rem .5rem;font-size:.66rem;gap:.3rem}
   .chip .nm{display:none}
