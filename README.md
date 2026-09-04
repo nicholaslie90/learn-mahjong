@@ -17,10 +17,16 @@ A full animated round as East against three bots. Tiles deal in the traditional 
 
 **A coach on every turn.** It names the tile to discard and why ("a lone honour: it can never join a run"), shows the blocks that discard keeps, how many swaps you are from ready, and every live tile that would improve the hand — counting only copies nobody has shown yet. When a call is on offer it tells you whether taking it actually buys you progress or just costs you the concealed-hand faan. Toggle it with **Hints** in the header.
 
+### Language
+English or Bahasa Indonesia, switched from the picker in the guide's nav and the table's HUD; the choice persists in the browser. The table vocabulary is left as it is spoken — chow, pung, kong, faan and the Cantonese stay put — and only the prose around them is translated.
+
+Dictionaries live in `i18n.js`, keyed by the English source string, so a missing entry simply falls through to English. Static markup carries no keys: `applyI18n` walks the text nodes once and swaps whole strings, and anything built by script goes through `t()` / `tf()`.
+
 ### Layout
 | file | what it is |
 |---|---|
 | `mahjong.js` | tile model, hand analyzer, faan scoring, shanten and the discard advice — shared by both pages |
+| `i18n.js` | the translations, keyed by the English string |
 | `index.html` | the guide |
 | `play.html` | the table |
 | `selfcheck.mjs` | the tests |

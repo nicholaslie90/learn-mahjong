@@ -55,6 +55,10 @@ button{font:inherit}
 .hudbtn{padding:.35rem .85rem;border-radius:99px;font-size:.8rem;cursor:pointer;white-space:nowrap;
   background:transparent;color:#A9CCBA;border:1px solid #ffffff2e}
 .hudbtn:hover{color:#fff;border-color:#ffffff70}
+select.lang{font:inherit;font-size:.8rem;appearance:none;padding-right:1.6rem;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23A9CCBA' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right .6rem center;background-size:.55rem}
+select.lang option{color:#14231F;background:#FBF7EC}
 .msg{font-size:.9rem;color:#BEDACE;flex:1 1 14rem;min-width:0}
 .msg b{color:#fff}
 .acts{display:flex;gap:.45rem;flex-wrap:wrap}
@@ -142,6 +146,7 @@ button{font:inherit}
   .hud,.bar{padding-left:.6rem;padding-right:.6rem;gap:.4rem .7rem}
   .wide{display:none}
   .hudmeta{gap:.7rem;font-size:.74rem}
+  .hud{flex-wrap:wrap}
   .msg{flex-basis:100%}
   .tip{font-size:.78rem}
   .tip .tile{font-size:1.3rem}
@@ -164,6 +169,7 @@ button{font:inherit}
       <span id="wallct">—</span>
       <a class="back" href="./#rules" id="rulelink">house rules</a>
     </div>
+    <span id="lang"></span>
     <button class="hudbtn" id="hintbtn">Hints on</button>
     <button class="hudbtn" id="newbtn">New round</button>
   </header>
@@ -185,9 +191,11 @@ button{font:inherit}
 <div class="scrim" id="scrim" hidden><div class="panel" id="panel"></div></div>
 
 <script src="mahjong.js"></script>
+<script src="i18n.js"></script>
 <script>
 "use strict";
-const SEATS=[{w:"E",zh:"東",n:"You"},{w:"S",zh:"南",n:"Right"},{w:"W",zh:"西",n:"Across"},{w:"N",zh:"北",n:"Left"}];
+el("lang").replaceWith(Object.assign(langPicker(true),{id:"lang",className:"hudbtn lang"}));
+const SEATS=[{w:"E",zh:"東",n:t("You")},{w:"S",zh:"南",n:t("Right")},{w:"W",zh:"西",n:t("Across")},{w:"N",zh:"北",n:t("Left")}];
 const ROUND="E", RANK={win:3,kong:2,pung:2,chow:1};
 const dist=(f,s)=>((s-f)+4)%4;
 const calm=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -350,37 +358,37 @@ function words(html){const s=document.createElement("span");s.innerHTML=html;ret
 function dot(){const s=document.createElement("span");s.className="sep";s.textContent="·";return s}
 
 function tipFor(live){
-  const t=el("tip");
-  t.replaceChildren();
-  if(!HINTS||W.over||W.busy){t.hidden=true;return}
-  if(W.phase==="claim"&&W.pend){claimTip(t);return}
-  if(!live){t.hidden=true;return}
+  const tip=el("tip");
+  tip.replaceChildren();
+  if(!HINTS||W.over||W.busy){tip.hidden=true;return}
+  if(W.phase==="claim"&&W.pend){claimTip(tip);return}
+  if(!live){tip.hidden=true;return}
   const a=currentAdvice();
-  if(!a){t.hidden=true;return}
+  if(!a){tip.hidden=true;return}
   const e=explain(a,ids(full(0)),ctxFor(0,false));
-  t.append(words("<b>Discard</b>"),gl(a.pick.t),
+  tip.append(words("<b>"+t("Discard")+"</b>"),gl(a.pick.t),
     words("<b>"+info(a.pick.t).label+"</b> — "+e.why+". "+e.ready));
   const keeps=a.pick.shape.blocks.filter(b=>b[1]!=="run2"||true).slice(0,5);
   if(keeps.length){
-    t.append(dot(),words("keeps"));
-    keeps.forEach(b=>t.append(group(blockTiles(b))));
+    tip.append(dot(),words(t("keeps")));
+    keeps.forEach(b=>tip.append(group(blockTiles(b))));
   }
   if(a.pick.accept.length){
     /* far from ready almost everything helps, and naming 90 tiles helps nobody */
     const listy=a.sh<=2, show=a.pick.accept.slice(0,12);
-    t.append(dot(),words(a.sh===0
-      ? "<b>"+a.pick.live+"</b> tiles still win it:"
-      : "<b>"+a.pick.live+"</b> live tiles improve it"+(listy?":":".")));
+    tip.append(dot(),words(a.sh===0
+      ? tf("<b>{}</b> tiles still win it:",a.pick.live)
+      : tf(listy?"<b>{}</b> live tiles improve it:":"<b>{}</b> live tiles improve it.",a.pick.live)));
     if(listy){
-      show.forEach(x=>t.append(gl(x.t)));
+      show.forEach(x=>tip.append(gl(x.t)));
       if(a.pick.accept.length>show.length)
-        t.append(words("+"+(a.pick.accept.length-show.length)+" more"));
+        tip.append(words(tf("+{} more",a.pick.accept.length-show.length)));
     }
-  }else t.append(dot(),words("nothing left in the wall improves it — play for a washout."));
-  t.hidden=false;
+  }else tip.append(dot(),words(t("nothing left in the wall improves it — play for a washout.")));
+  tip.hidden=false;
 }
 /* claiming costs you a concealed hand, so only take it when it actually buys progress */
-function claimTip(t){
+function claimTip(tip){
   const p=W.pend;
   const hand=ids(full(0)), now=shapeOf(counts(hand),W.meld[0].length).sh;
   let best=null;
@@ -398,19 +406,20 @@ function claimTip(t){
     if(!best||after<best.sh)best={op:op,sh:after};
   });
   if(best&&best.sh<0){
-    t.append(words("<b>Take it.</b> That is your winning tile."));
+    tip.append(words("<b>"+t("Take it.")+"</b> "+t("That is your winning tile.")));
   }else if(best&&best.sh<now){
     const scoring=HONOR[p.tile]&&(HONOR[p.tile].grp==="dragon"
       ||p.tile===SEATS[0].w||p.tile===ROUND);
-    t.append(words("<b>Worth calling.</b> "+(best.op.k==="chow"?"Chow":best.op.k==="kong"?"Kong":"Pung")
-      +" moves you from "+now+" away to "+best.sh+" away"
-      +(scoring?", and that pung is worth a faan on its own":"")
-      +". It does cost you the concealed-hand faan."));
+    tip.append(words("<b>"+t("Worth calling.")+"</b> "
+      +tf("{} moves you from {} away to {} away",
+          best.op.k==="chow"?"Chow":best.op.k==="kong"?"Kong":"Pung",now,best.sh)
+      +(scoring?t(", and that pung is worth a faan on its own"):"")
+      +t(". It does cost you the concealed-hand faan.")));
   }else{
-    t.append(words("<b>Better to pass.</b> Calling would not get you any closer than "
-      +now+" away, and it exposes a set and gives up the concealed-hand faan."));
+    tip.append(words("<b>"+t("Better to pass.")+"</b> "
+      +tf("Calling would not get you any closer than {} away, and it exposes a set and gives up the concealed-hand faan.",now)));
   }
-  t.hidden=false;
+  tip.hidden=false;
 }
 
 let paintedAt="";
@@ -455,7 +464,7 @@ function paint(){
     const playable=live&&o.face&&mine.has(i);
     e.disabled=!playable;
     e.setAttribute("aria-hidden",playable?"false":"true");
-    e.setAttribute("aria-label",playable?"Discard the "+info(t).label:"");
+    e.setAttribute("aria-label",playable?tf("Discard the {}",info(t).label):"");
     e.onclick=playable?(()=>discard(0,INST[i])):null;
   }
   for(let s=0;s<4;s++){
@@ -464,8 +473,8 @@ function paint(){
     c.innerHTML='<span class="dot"></span><span class="nm">'+SEATS[s].n
       +'</span><span class="zh">'+SEATS[s].zh+'</span><em>'+full(s).length+'</em>';
   }
-  el("wallct").textContent=W.wall.length+" in the wall";
-  el("rulelink").textContent=RULES.min?"min "+RULES.min+" faan":"no minimum";
+  el("wallct").textContent=tf("{} in the wall",W.wall.length);
+  el("rulelink").textContent=RULES.min?tf("min {} faan",RULES.min):t("no minimum");
   bar();
   tipFor(live);
 }
@@ -485,13 +494,13 @@ function bar(){
       const key=op.k+(op.with?op.with.join(""):"");
       if(seen[key])return;
       seen[key]=1;
-      mk(op.k==="win"?"Win 食糊":op.k==="kong"?"Kong 槓":op.k==="pung"?"Pung 碰"
+      mk(op.k==="win"?t("Win")+" 食糊":op.k==="kong"?"Kong 槓":op.k==="pung"?"Pung 碰"
         :"Chow "+info(op.with[0]).zh+info(op.with[1]).zh,
         ()=>settle(p.from,p.tile,p.bots,op));
     });
-    mk("Pass",()=>settle(p.from,p.tile,p.bots,null),true);
+    mk(t("Pass"),()=>settle(p.from,p.tile,p.bots,null),true);
   }else if(W.phase==="discard"&&W.turn===0&&W.canWin){
-    mk("Win 食糊 · "+W.canWin.score.faan+" faan",()=>done({seat:0,by:null,a:W.canWin,tile:null}));
+    mk(t("Win")+" 食糊 · "+tf("{} faan",W.canWin.score.faan),()=>done({seat:0,by:null,a:W.canWin,tile:null}));
   }
 }
 
@@ -514,7 +523,7 @@ function startRound(){
   /* let every tile land on the wall before transitions switch back on */
   requestAnimationFrame(()=>{
     NODES.forEach(n=>{n.el.style.transition=""});
-    say("Dealing…");
+    say(t("Dealing…"));
     const steps=[];
     for(let r=0;r<3;r++)for(let s=0;s<4;s++)steps.push(()=>take(s,4));
     for(let s=0;s<4;s++)steps.push(()=>take(s,1));
@@ -566,10 +575,10 @@ function turnOf(s){
   W.canWin=(s===0&&can)?win:null;
   W.phase="discard";
   say(s===0
-    ? (can?"You can declare a win — or discard and keep going."
-      : win?"Complete, but only "+win.score.faan+" faan and this table needs "+RULES.min+". Keep building."
-      : "Your turn. Pick a tile to discard.")
-    : "<b>"+SEATS[s].n+"</b> is thinking…");
+    ? (can?t("You can declare a win — or discard and keep going.")
+      : win?tf("Complete, but only {} faan and this table needs {}. Keep building.",win.score.faan,RULES.min)
+      : t("Your turn. Pick a tile to discard."))
+    : tf("<b>{}</b> is thinking…",SEATS[s].n));
   paint();
   if(s!==0)later(()=>botDiscard(s),THINK);
 }
@@ -614,10 +623,11 @@ function discard(s,inst){
   const mine=(s!==0)?options(0,s,inst.t):[];
   if(mine.length){
     W.pend={from:s,tile:inst.t,bots:bots,opts:mine};W.phase="claim";
-    say("<b>"+SEATS[s].n+"</b> discarded the "+info(inst.t).label+" — call it, or pass.");
+    say(tf("<b>{}</b> discarded the {} — call it, or pass.",SEATS[s].n,info(inst.t).label));
     paint();return;
   }
-  say((s===0?"You discard":"<b>"+SEATS[s].n+"</b> discards")+" the "+info(inst.t).label+".");
+  say(s===0?tf("You discard the {}.",info(inst.t).label)
+            :tf("<b>{}</b> discards the {}.",SEATS[s].n,info(inst.t).label));
   paint();
   later(()=>settle(s,inst.t,bots,null),SETTLE);
 }
@@ -659,14 +669,16 @@ function settle(from,tile,bots,mine){
     return done({seat:w.seat,by:from,a:a,tile:tile});
   }
   meld(w.seat,w,inst);
+  const CALL={win:t("Win"),kong:"Kong",pung:"Pung",chow:"Chow"};
   const note=mine&&w.seat!==0
-    ? "Your "+mine.k+" is outranked — <b>"+SEATS[w.seat].n+"</b> calls "+w.k+"."
-    : (w.seat===0?"You call ":"<b>"+SEATS[w.seat].n+"</b> calls ")+w.k+" on the "+info(tile).label+".";
+    ? tf("Your {} is outranked — <b>{}</b> calls {}.",CALL[mine.k],SEATS[w.seat].n,CALL[w.k])
+    : (w.seat===0?tf("You call {} on the {}.",CALL[w.k],info(tile).label)
+                 :tf("<b>{}</b> calls {} on the {}.",SEATS[w.seat].n,CALL[w.k],info(tile).label));
   W.turn=w.seat;W.phase="discard";
   const again=look(w.seat,true);
   if(declarable(again)&&w.seat!==0)return done({seat:w.seat,by:null,a:again,tile:null});
   W.canWin=(w.seat===0&&declarable(again))?again:null;
-  say(note+(w.seat===0?" Now discard.":""));
+  say(note+(w.seat===0?" "+t("Now discard."):""));
   paint();
   if(w.seat!==0)later(()=>botDiscard(w.seat),THINK);
 }
@@ -690,7 +702,7 @@ function meld(s,w,inst){
 function done(r){
   W.over=true;W.phase="over";W.pend=null;W.canWin=null;W.result=r;
   clearLater();
-  say(r?(r.seat===0?"You win.":"<b>"+SEATS[r.seat].n+"</b> wins."):"Washout — the wall ran out.");
+  say(r?(r.seat===0?t("You win."):tf("<b>{}</b> wins.",SEATS[r.seat].n)):t("Washout — the wall ran out."));
   paint();
   later(()=>showPanel(),620);
 }
@@ -699,13 +711,13 @@ function showPanel(){
   const r=W.result;
   const h=document.createElement("h2");
   h.innerHTML=r
-    ? (r.seat===0?"You win":SEATS[r.seat].n+" wins")+' <span class="zh">食糊</span>'
-    : 'Washout <span class="zh">流局</span>';
+    ? (r.seat===0?t("You win"):tf("{} wins",SEATS[r.seat].n))+' <span class="zh">食糊</span>'
+    : t("Washout")+' <span class="zh">流局</span>';
   p.append(h);
   if(!r){
-    const t=document.createElement("p");
-    t.textContent="The wall ran out before anyone finished the hand. Nobody pays.";
-    p.append(t);
+    const line=document.createElement("p");
+    line.textContent=t("The wall ran out before anyone finished the hand. Nobody pays.");
+    p.append(line);
   }else{
     const row=document.createElement("div");row.className="row";
     W.meld[r.seat].forEach(m=>{
@@ -716,16 +728,16 @@ function showPanel(){
     p.append(row,patList(r.a.score));
     const note=document.createElement("p");
     note.textContent=r.tile
-      ? SEATS[r.by].n+" fed the winning tile, so "+(r.by===0?"you pay":SEATS[r.by].n+" pays")
-        +" all "+units(r.a.score.faan)+" units alone."
-      : "Self-drawn, so all three opponents pay "+units(r.a.score.faan)+" units each.";
+      ? tf("{} fed the winning tile, so {} all {} units alone.",SEATS[r.by].n,
+           r.by===0?t("you pay"):tf("{} pays",SEATS[r.by].n),units(r.a.score.faan))
+      : tf("Self-drawn, so all three opponents pay {} units each.",units(r.a.score.faan));
     p.append(note);
   }
   const acts=document.createElement("div");acts.className="acts";
   const again=document.createElement("button");
-  again.type="button";again.textContent="Deal another round";again.onclick=startRound;
+  again.type="button";again.textContent=t("Deal another round");again.onclick=startRound;
   const backBtn=document.createElement("button");
-  backBtn.type="button";backBtn.className="sec";backBtn.textContent="Back to the guide";
+  backBtn.type="button";backBtn.className="sec";backBtn.textContent=t("Back to the guide");
   backBtn.onclick=()=>{location.href="./"};
   acts.append(again,backBtn);p.append(acts);
   el("scrim").hidden=false;
@@ -735,13 +747,14 @@ function showPanel(){
 makeNodes();
 el("newbtn").onclick=startRound;
 const hintBtn=el("hintbtn");
-function drawHintBtn(){hintBtn.textContent=HINTS?"Hints on":"Hints off";hintBtn.setAttribute("aria-pressed",HINTS)}
+function drawHintBtn(){hintBtn.textContent=t(HINTS?"Hints on":"Hints off");hintBtn.setAttribute("aria-pressed",HINTS)}
 hintBtn.onclick=()=>{
   HINTS=!HINTS;
   try{localStorage.setItem("mj-hints",HINTS?"on":"off")}catch(e){}
   drawHintBtn();paint();
 };
 drawHintBtn();
+applyI18n();
 addEventListener("resize",()=>{if(W)paint()});
 /* the hint panel grows and shrinks the board under us, and content reflow
    fires no resize event — so watch the board itself and lay out again */

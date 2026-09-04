@@ -20,6 +20,7 @@ class E {
   append(...k){ this.children.push(...k); }
   replaceChildren(...k){ this.children = k; }
   setAttribute(){}
+  replaceWith(){}
   querySelectorAll(){ return []; }
   focus(){}
 }

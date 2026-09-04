@@ -153,6 +153,7 @@ footer a{color:var(--ink)}
 .seg button[aria-pressed=true]{background:var(--felt);color:#fff;font-weight:600}
 tr.off td{opacity:.4}
 tr.off td.num::after{content:" — off";font-weight:400;font-size:.8em}
+html[lang=id] tr.off td.num::after{content:" — mati"}
 
 /* ── play-page invitation ────────────────────── */
 .playcard{display:flex;flex-wrap:wrap;align-items:center;gap:1.1rem 1.6rem;margin-top:1.7rem;
@@ -166,6 +167,13 @@ tr.off td.num::after{content:" — off";font-weight:400;font-size:.8em}
 .playcard .pcW b{display:block;font-family:var(--display);font-size:1.45rem;font-variation-settings:'WONK' 1;color:#fff}
 .playcard .pcW span{display:block;margin-top:.2rem;font-size:.9rem;color:#A9CCBA}
 .playcard .pcGo{flex:none;font-weight:600;font-size:.95rem;color:#EFC677;white-space:nowrap}
+/* ── language picker ─────────────────────────── */
+select.lang{flex:none;font:inherit;font-size:.8rem;color:var(--ink-2);background:#fff;
+  border:1px solid var(--line);border-radius:99px;padding:.28rem 1.5rem .28rem .6rem;cursor:pointer;
+  appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2355655E' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right .55rem center;background-size:.55rem}
+select.lang:hover,select.lang:focus-visible{color:var(--ink);border-color:var(--ink-3)}
+
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
 </style>
 </head>
@@ -174,6 +182,7 @@ tr.off td.num::after{content:" — off";font-weight:400;font-size:.8em}
 <nav><div class="wrap">
   <b>Learn Mahjong</b>
   <a href="#tiles">Tiles</a><a href="#sets">Sets</a><a href="#build">Build</a><a href="#play">Play</a><a href="#scoring">Scoring</a><a href="#table">Table</a><a href="#practice">Drills</a>
+  <span id="langslot"></span>
 </div></nav>
 
 <header>
@@ -336,21 +345,23 @@ tr.off td.num::after{content:" — off";font-weight:400;font-size:.8em}
 </div></footer>
 
 <script src="mahjong.js"></script>
+<script src="i18n.js"></script>
 <script>
 "use strict";
+el("langslot").replaceWith(langPicker());
 /* ── page pieces ───────────────────────────────────────────── */
 const rowEl=(ids,opts)=>{const d=document.createElement("div");d.className="row";ids.forEach((id,n)=>d.append(tileEl(id,Object.assign({i:n},opts))));return d;};
 
 /* ── hero: a finished hand ────────────────────────────────── */
 const HAND=[["2m","3m","4m"],["5s","5s","5s"],["7p","8p","9p"],["E","E","E"],["B","B"]];
-const MELDNAME=["Chow <span>上</span>","Pung <span>碰</span>","Chow <span>上</span>","Pung <span>碰</span>","Pair <span>眼</span>"];
+const MELDNAME=()=>["Chow <span>上</span>","Pung <span>碰</span>","Chow <span>上</span>","Pung <span>碰</span>",t("Pair")+" <span>眼</span>"];
 (function(){
   const rack=document.getElementById("rack"); let n=0;
   HAND.forEach((meld,mi)=>{
     const f=document.createElement("figure"); f.className="meld"; f.style.margin=0;
     const r=document.createElement("div"); r.className="row";
     meld.forEach(id=>r.append(tileEl(id,{i:n++,lift:true})));
-    const c=document.createElement("figcaption"); c.innerHTML=MELDNAME[mi];
+    const c=document.createElement("figcaption"); c.innerHTML=MELDNAME()[mi];
     f.append(r,c); rack.append(f);
   });
 })();
@@ -372,13 +383,14 @@ const MELDNAME=["Chow <span>上</span>","Pung <span>碰</span>","Chow <span>上<
     s.append(g); ref.append(s);
   };
   const nums=k=>[1,2,3,4,5,6,7,8,9].map(n=>n+k);
+  const short=(id,i)=>i.short;
   ["m","s","p"].forEach(k=>block(
-    SUIT[k].label+' <span class="zh">'+SUIT[k].zh+'</span>',
-    "36 tiles &middot; four of each &middot; "+SUIT[k].hint,
-    nums(k), (id,i)=>i.label.split(" ")[0]));
-  block('Winds <span class="zh">風</span>',"16 tiles &middot; four of each &middot; they mark the seats",["E","S","W","N"],(id,i)=>i.label.split(" ")[0]);
-  block('Dragons <span class="zh">三元牌</span>',"12 tiles &middot; four of each &middot; every pung is worth faan",["C","F","B"],(id,i)=>i.label.split(" ")[0]);
-  block('Flowers &amp; seasons <span class="zh">花牌</span>',"8 tiles &middot; one of each &middot; bonus only, never held in hand",Object.keys(BONUS),(id,i)=>i.label);
+    t(SUIT[k].label)+' <span class="zh">'+SUIT[k].zh+'</span>',
+    tf("36 tiles &middot; four of each &middot; {}",t(SUIT[k].hint)),
+    nums(k), short));
+  block(t("Winds")+' <span class="zh">風</span>',t("16 tiles &middot; four of each &middot; they mark the seats"),["E","S","W","N"],short);
+  block(t("Dragons")+' <span class="zh">三元牌</span>',t("12 tiles &middot; four of each &middot; every pung is worth faan"),["C","F","B"],short);
+  block(t("Flowers &amp; seasons")+' <span class="zh">花牌</span>',t("8 tiles &middot; one of each &middot; bonus only, never held in hand"),Object.keys(BONUS),(id,i)=>i.label);
 })();
 
 /* ── set cards ────────────────────────────────────────────── */
@@ -392,9 +404,9 @@ const MELDNAME=["Chow <span>上</span>","Pung <span>碰</span>","Chow <span>上<
   const host=document.getElementById("setcards");
   cards.forEach(([en,zh,desc,ids])=>{
     const d=document.createElement("div"); d.className="card";
-    d.innerHTML='<h3>'+en+' <span class="zh" style="color:var(--gold)">'+zh+'</span></h3>';
+    d.innerHTML='<h3>'+t(en)+' <span class="zh" style="color:var(--gold)">'+zh+'</span></h3>';
     const r=rowEl(ids,{lift:true}); r.style.margin=".7rem 0 .8rem";
-    const p=document.createElement("p"); p.style.cssText="margin:0;color:var(--ink-2);font-size:.94rem"; p.innerHTML=desc;
+    const p=document.createElement("p"); p.style.cssText="margin:0;color:var(--ink-2);font-size:.94rem"; p.innerHTML=t(desc);
     d.append(r,p); host.append(d);
   });
 })();
@@ -404,40 +416,40 @@ const g=id=>'<span class="tile ink-'+info(id).ink+'">'+glyph(id)+'</span>';
 
 function qName(){
   const pool=ALL.concat(Object.keys(BONUS));
-  const t=pick(pool), right=info(t).label;
+  const tl=pick(pool), right=info(tl).label;
   const wrong=shuffle(pool.filter(x=>info(x).label!==right)).slice(0,3).map(x=>info(x).label);
-  return {prompt:"Which tile is this?", tiles:[t], options:shuffle([right].concat(wrong)), answer:right,
-    why:g(t)+" is the "+right+' — <span class="zh">'+info(t).zh+"</span>."};
+  return {prompt:t("Which tile is this?"), tiles:[tl], options:shuffle([right].concat(wrong)), answer:right,
+    why:g(tl)+tf(" is the {} — ",right)+'<span class="zh">'+info(tl).zh+"</span>."};
 }
 
 function qSet(){
-  const CHOW="Chow 順子", PUNG="Pung 刻子", NONE="Not a set";
+  const CHOW="Chow 順子", PUNG="Pung 刻子", NONE=t("Not a set");
   const kind=pick(["chow","pung","none","none"]);
   let tiles, answer, why;
   if(kind==="chow"){
     const k=pick(["m","s","p"]), n=1+(Math.random()*7|0);
     tiles=[n+k,(n+1)+k,(n+2)+k]; answer=CHOW;
-    why="Three in a row in the same suit — a chow. You may only claim one from the player on your left.";
+    why=t("Three in a row in the same suit — a chow. You may only claim one from the player on your left.");
   }else if(kind==="pung"){
     const t=pick(ALL); tiles=[t,t,t]; answer=PUNG;
-    why="Three identical tiles — a pung. Claimable from anyone, and it outranks a chow.";
+    why=t("Three identical tiles — a pung. Claimable from anyone, and it outranks a chow.");
   }else{
     answer=NONE;
     const trap=pick(["honor-run","gap","cross","mixed"]);
     if(trap==="honor-run"){
       const w=shuffle(pick([["E","S","W"],["S","W","N"],["C","F","B"]]));
-      tiles=w; why="Honours have no order, so they never form runs. Winds and dragons only ever group as pairs, pungs and kongs.";
+      tiles=w; why=t("Honours have no order, so they never form runs. Winds and dragons only ever group as pairs, pungs and kongs.");
     }else if(trap==="gap"){
       const k=pick(["m","s","p"]), n=1+(Math.random()*5|0);
-      tiles=[n+k,(n+2)+k,(n+3)+k]; why="There's a gap. A chow has to be three consecutive numbers.";
+      tiles=[n+k,(n+2)+k,(n+3)+k]; why=t("There's a gap. A chow has to be three consecutive numbers.");
     }else if(trap==="cross"){
       const [a,b]=shuffle(["m","s","p"]).slice(0,2), n=1+(Math.random()*7|0);
-      tiles=[n+a,(n+1)+a,(n+2)+b]; why="The run breaks suit on the last tile. A chow lives entirely in one suit.";
+      tiles=[n+a,(n+1)+a,(n+2)+b]; why=t("The run breaks suit on the last tile. A chow lives entirely in one suit.");
     }else{
-      tiles=shuffle(ALL).slice(0,3); why="Three unrelated tiles — no run, no match.";
+      tiles=shuffle(ALL).slice(0,3); why=t("Three unrelated tiles — no run, no match.");
     }
   }
-  return {prompt:"Is this a set?", tiles:tiles, options:[CHOW,PUNG,NONE], answer:answer, why:why};
+  return {prompt:t("Is this a set?"), tiles:tiles, options:[CHOW,PUNG,NONE], answer:answer, why:why};
 }
 
 function formsRun(hand,discard){
@@ -448,55 +460,57 @@ function formsRun(hand,discard){
   return n[1]===n[0]+1 && n[2]===n[1]+1;
 }
 function qClaim(){
-  const PUNG="Pung 碰", CHOW="Chow 上", NO="Can't claim it";
+  const PUNG="Pung 碰", CHOW="Chow 上", NO=t("Can't claim it");
   const seats=[["the player on your left",true],["the player across from you",false],["the player on your right",false]];
   const [seat,isLeft]=pick(seats);
   const kind=pick(["pung","chow","chow","none"]);
   let discard, hand, answer, why;
   if(kind==="pung"){
     discard=pick(ALL); hand=[discard,discard]; answer=PUNG;
-    why="A pung can be claimed from any seat, so it doesn't matter that it came from "+seat+".";
+    why=tf("A pung can be claimed from any seat, so it doesn't matter that it came from {}.",t(seat));
   }else if(kind==="chow"){
     const k=pick(["m","s","p"]), n=1+(Math.random()*7|0), run=[n+k,(n+1)+k,(n+2)+k];
     const i=Math.random()*3|0;
     discard=run[i]; hand=run.filter((_,j)=>j!==i);
     answer=isLeft?CHOW:NO;
     why=isLeft
-      ? "Your two tiles complete the run, and a chow may only be claimed from the player on your left — which is exactly who discarded."
-      : "Your tiles do complete a run, but a chow can only be taken from the player on your left. From "+seat+", let it go.";
+      ? t("Your two tiles complete the run, and a chow may only be claimed from the player on your left — which is exactly who discarded.")
+      : tf("Your tiles do complete a run, but a chow can only be taken from the player on your left. From {}, let it go.",t(seat));
   }else{
     discard=pick(ALL);
     do{ hand=shuffle(ALL).slice(0,2); }
     while(hand.includes(discard)||hand[0]===hand[1]||formsRun(hand,discard));
     answer=NO;
-    why="Nothing in your hand pairs with it or runs into it, so there's no set to complete.";
+    why=t("Nothing in your hand pairs with it or runs into it, so there's no set to complete.");
   }
-  return {prompt:"You hold these two tiles. "+seat.charAt(0).toUpperCase()+seat.slice(1)+" discards the tile on the right. What can you call?",
+  const Seat=t(seat).charAt(0).toUpperCase()+t(seat).slice(1);
+  return {prompt:tf("You hold these two tiles. {} discards the tile on the right. What can you call?",Seat),
     tiles:hand.concat(["gap",discard]), options:[PUNG,CHOW,NO], answer:answer, why:why};
 }
 
 const FAAN=[
-  {name:"All pungs 碰碰糊 — 3 faan", tiles:["3m","3m","3m","gap","7s","7s","7s","gap","9p","9p","9p","gap","E","E","E","gap","5m","5m"],
+  {pat:"All pungs", zh:"碰碰糊", faan:3, tiles:["3m","3m","3m","gap","7s","7s","7s","gap","9p","9p","9p","gap","E","E","E","gap","5m","5m"],
    why:"Four pungs and a pair, not a single run in sight."},
-  {name:"Half flush 混一色 — 3 faan", tiles:["2s","3s","4s","gap","6s","7s","8s","gap","9s","9s","9s","gap","C","C","C","gap","W","W"],
+  {pat:"Half flush", zh:"混一色", faan:3, tiles:["2s","3s","4s","gap","6s","7s","8s","gap","9s","9s","9s","gap","C","C","C","gap","W","W"],
    why:"One suit plus honours. Strip out the honours and it would be a full flush."},
-  {name:"Full flush 清一色 — 7 faan", tiles:["1p","2p","3p","gap","4p","5p","6p","gap","7p","8p","9p","gap","2p","2p","2p","gap","5p","5p"],
+  {pat:"Full flush", zh:"清一色", faan:7, tiles:["1p","2p","3p","gap","4p","5p","6p","gap","7p","8p","9p","gap","2p","2p","2p","gap","5p","5p"],
    why:"Circles and nothing else — no honours allowed in a full flush."},
-  {name:"Big three dragons 大三元 — 8 faan", tiles:["C","C","C","gap","F","F","F","gap","B","B","B","gap","3m","4m","5m","gap","7s","7s"],
+  {pat:"Big three dragons", zh:"大三元", faan:8, tiles:["C","C","C","gap","F","F","F","gap","B","B","B","gap","3m","4m","5m","gap","7s","7s"],
    why:"All three dragons as pungs. Two pungs plus the third as your pair would be small three dragons instead."},
-  {name:"Small three dragons 小三元 — 5 faan", tiles:["C","C","C","gap","F","F","F","gap","2p","3p","4p","gap","6s","7s","8s","gap","B","B"],
+  {pat:"Small three dragons", zh:"小三元", faan:5, tiles:["C","C","C","gap","F","F","F","gap","2p","3p","4p","gap","6s","7s","8s","gap","B","B"],
    why:"Two dragon pungs and the third dragon sitting as the pair."},
-  {name:"All honours 字一色 — 10 faan", tiles:["E","E","E","gap","S","S","S","gap","W","W","W","gap","C","C","C","gap","F","F"],
+  {pat:"All honours", zh:"字一色", faan:10, tiles:["E","E","E","gap","S","S","S","gap","W","W","W","gap","C","C","C","gap","F","F"],
    why:"Winds and dragons only. No suit tile ever enters the hand."},
-  {name:"Thirteen orphans 十三么 — 13 faan", tiles:["1m","9m","1s","9s","1p","9p","E","S","W","N","C","F","B","1m"],
+  {pat:"Thirteen orphans", zh:"十三么", faan:13, tiles:["1m","9m","1s","9s","1p","9p","E","S","W","N","C","F","B","1m"],
    why:"Every terminal and every honour, one of them doubled. The one hand that ignores the four-sets rule."},
-  {name:"Chicken hand 雞糊 — 0 faan", tiles:["1m","2m","3m","gap","4s","5s","6s","gap","7p","8p","9p","gap","3p","4p","5p","gap","2s","2s"],
+  {pat:"Chicken hand", zh:"雞糊", faan:0, tiles:["1m","2m","3m","gap","4s","5s","6s","gap","7p","8p","9p","gap","3p","4p","5p","gap","2s","2s"],
    why:"Complete and completely unremarkable — no flush, no honours, no pungs. On a 3-faan table you can't even declare it."}
 ];
 function qFaan(){
   const h=pick(FAAN);
-  const wrong=shuffle(FAAN.filter(x=>x!==h)).slice(0,3).map(x=>x.name);
-  return {prompt:"What is this hand worth?", tiles:h.tiles, options:shuffle([h.name].concat(wrong)), answer:h.name, why:h.why};
+  const nm=x=>tf("{} {} — {} faan",t(x.pat),x.zh,x.faan);
+  const wrong=shuffle(FAAN.filter(x=>x!==h)).slice(0,3).map(nm);
+  return {prompt:t("What is this hand worth?"), tiles:h.tiles, options:shuffle([nm(h)].concat(wrong)), answer:nm(h), why:t(h.why)};
 }
 
 const MODES=[["Name the tile",qName],["Chow, pung or nothing",qSet],["Can you claim it?",qClaim],["Score the hand",qFaan]];
@@ -506,7 +520,7 @@ let mode=0, asked=0, right=0, streak=0, best=0, current=null;
   const host=el("modes");
   MODES.forEach(([label],i)=>{
     const b=document.createElement("button");
-    b.type="button"; b.textContent=label; b.setAttribute("aria-pressed",i===0);
+    b.type="button"; b.textContent=t(label); b.setAttribute("aria-pressed",i===0);
     b.onclick=()=>{ mode=i; [...host.children].forEach((c,j)=>c.setAttribute("aria-pressed",j===i)); deal(); };
     host.append(b);
   });
@@ -538,12 +552,12 @@ function answer(chosen,host){
     else if(b.textContent===chosen) b.classList.add("wrong");
   });
   const w=el("qwhy");
-  w.innerHTML=(ok?"<b>Right. </b>":"<b>Not quite. </b>")+current.why;
+  w.innerHTML="<b>"+t(ok?"Right.":"Not quite.")+" </b>"+current.why;
   w.hidden=false;
   score();
 }
 function score(){
-  el("qscore").textContent=asked?right+" of "+asked+" correct  ·  streak "+streak+"  ·  best "+best:"No answers yet";
+  el("qscore").textContent=asked?tf("{} of {} correct  ·  streak {}  ·  best {}",right,asked,streak,best):t("No answers yet");
 }
 el("qnext").onclick=deal;
 deal();
@@ -567,12 +581,12 @@ function syncRules(){
   RULE_DEFS.forEach(r=>{
     const row=document.createElement("div");row.className="rule";
     const lab=document.createElement("div");lab.className="lab";
-    lab.innerHTML='<b>'+r.label+'</b><span class="zh">'+r.zh+'</span>'+(r.note?'<em>'+r.note+'</em>':'');
+    lab.innerHTML='<b>'+t(r.label)+'</b><span class="zh">'+r.zh+'</span>'+(r.note?'<em>'+t(r.note)+'</em>':'');
     const seg=document.createElement("div");seg.className="seg";seg.dataset.k=r.k;
     r.opts.forEach(v=>{
       const b=document.createElement("button");
       b.type="button";b.dataset.v=v;
-      b.textContent=(r.opts.length===2&&r.opts[0]===0)?(v?"On":"Off"):v;
+      b.textContent=(r.opts.length===2&&r.opts[0]===0)?t(v?"On":"Off"):v;
       b.onclick=()=>{RULES[r.k]=v;saveRules();syncRules()};
       seg.append(b);
     });
@@ -620,35 +634,35 @@ function bReadout(){
   const left=14-BH.length;
   if(BH.length<13){
     const n=maxSets(counts(BH),0);
-    d.innerHTML='<p style="margin:0">'+n+' complete set'+(n===1?"":"s")+' so far. '+left+' more tile'+(left===1?"":"s")+' to a full hand.</p>';
+    d.innerHTML='<p style="margin:0">'+tf("{} complete sets so far. {} more tiles to a full hand.",n,left)+'</p>';
     return d;
   }
   if(BH.length===13){
     const w=waitsFor(BH);
     if(w.length){
-      d.innerHTML='<p class="ok" style="margin:0 0 .55rem">Ready — one tile away. Any of these wins it:</p>';
+      d.innerHTML='<p class="ok" style="margin:0 0 .55rem">'+t("Ready — one tile away. Any of these wins it:")+'</p>';
       const r=document.createElement("div");r.className="row";
       w.forEach(t=>r.append(tileEl(t)));
       d.append(r);
     }else{
       const n=maxSets(counts(BH),0);
-      d.innerHTML='<p style="margin:0">Not ready — '+n+' complete sets, and no single tile finishes this hand.</p>';
+      d.innerHTML='<p style="margin:0">'+tf("Not ready — {} complete sets, and no single tile finishes this hand.",n)+'</p>';
     }
     return d;
   }
   const a=analyze(BH,[],{seatWind:"E",roundWind:"E",concealed:true,selfDraw:false});
   if(!a){
     const n=maxSets(counts(BH),0);
-    d.innerHTML='<p style="margin:0">Not a winning hand — '+n+' complete sets, but a win needs exactly four sets plus one pair.</p>';
+    d.innerHTML='<p style="margin:0">'+tf("Not a winning hand — {} complete sets, but a win needs exactly four sets plus one pair.",n)+'</p>';
     return d;
   }
-  d.innerHTML='<p class="ok" style="margin:0 0 .7rem">Winning hand.</p>';
+  d.innerHTML='<p class="ok" style="margin:0 0 .7rem">'+t("Winning hand.")+'</p>';
   if(!a.d.orphans) d.append(meldRow(a.d.sets,a.d.pair));
   d.append(patList(a.score));
   if(!declarable(a)){
     const p=document.createElement("p");
     p.style.cssText="margin:.7rem 0 0;color:var(--ink-2);font-size:.9rem";
-    p.textContent="Below this table's "+RULES.min+"-faan minimum — a legal shape, but you could not declare it.";
+    p.textContent=tf("Below this table's {}-faan minimum — a legal shape, but you could not declare it.",RULES.min);
     d.append(p);
   }
   return d;
@@ -657,26 +671,26 @@ function bRender(){
   const c=counts(BH);
   el("pal").querySelectorAll("button").forEach(b=>{b.disabled=BH.length>=14||c[IDX[b.dataset.t]]>=4});
   const hb=el("bhand");hb.replaceChildren();
-  if(!BH.length){const e=document.createElement("span");e.className="empty";e.textContent="Empty — pick tiles above, or deal yourself one.";hb.append(e)}
+  if(!BH.length){const e=document.createElement("span");e.className="empty";e.textContent=t("Empty — pick tiles above, or deal yourself one.");hb.append(e)}
   BH.forEach((t,i)=>{
     const b=document.createElement("button");
     b.type="button";b.className="tile lift ink-"+info(t).ink;b.textContent=glyph(t);
-    b.setAttribute("aria-label","Remove "+info(t).label);
+    b.setAttribute("aria-label",tf("Remove {}",info(t).label));
     b.onclick=()=>{BH.splice(i,1);bRender()};
     hb.append(b);
   });
-  el("bcount").textContent=BH.length+" / 14 tiles";
+  el("bcount").textContent=tf("{} / 14 tiles",BH.length);
   el("bout").replaceChildren(bReadout());
 }
 (function(){
   const p=el("pal");
   [["Characters",0,9],["Bamboo",9,18],["Circles",18,27],["Winds",27,31],["Dragons",31,34]].forEach(gr=>{
     const d=document.createElement("div");d.className="palgrp";
-    const lab=document.createElement("b");lab.textContent=gr[0];d.append(lab);
+    const lab=document.createElement("b");lab.textContent=t(gr[0]);d.append(lab);
     ORDER.slice(gr[1],gr[2]).forEach(t=>{
       const b=document.createElement("button");
       b.type="button";b.className="tile lift ink-"+info(t).ink;b.textContent=glyph(t);
-      b.dataset.t=t;b.setAttribute("aria-label","Add "+info(t).label);
+      b.dataset.t=t;b.setAttribute("aria-label",tf("Add {}",info(t).label));
       b.onclick=()=>bAdd(t);
       d.append(b);
     });
@@ -688,6 +702,7 @@ function bRender(){
   bRender();
 })();
 syncRules();
+applyI18n();
 
 </script>
 </body>

@@ -1,6 +1,54 @@
 /* Hong Kong mahjong — tile model, hand analyzer, and the bits both pages share. */
 "use strict";
 
+/* ── language ───────────────────────────────────────────────────────────────
+   Dictionaries are keyed by the English string itself, so anything missing
+   simply falls through to English. i18n.js fills I18N after this file loads;
+   pattern names stay English inside the scorer and are translated on render. */
+const I18N = {};
+const LANGS = [["en","English","EN"],["id","Bahasa Indonesia","ID"]];
+let LANG = "en";
+try{ const l=localStorage.getItem("mj-lang"); if(l&&LANGS.some(x=>x[0]===l)) LANG=l; }catch(e){}
+const dict = () => I18N[LANG];
+function t(s){ const d=dict(); const v=d&&d[s]; return v==null?s:v; }
+/* "{} tiles left" -> tf("{} tiles left", 7) */
+function tf(s){ const a=[].slice.call(arguments,1); let i=0; return t(s).replace(/\{\}/g,()=>a[i++]); }
+function setLang(l){ try{localStorage.setItem("mj-lang",l)}catch(e){} location.reload(); }
+
+/* Static markup carries no keys: walk the text nodes and swap whole strings. */
+const I18N_SKIP={SCRIPT:1,STYLE:1};
+function applyI18n(){
+  const d=dict(); if(!d) return;
+  document.documentElement.lang=LANG;
+  const w=document.createTreeWalker(document.documentElement,NodeFilter.SHOW_TEXT);
+  const jobs=[];
+  for(let n=w.nextNode();n;n=w.nextNode()){
+    const p=n.parentNode;
+    if(p&&I18N_SKIP[p.tagName]) continue;
+    const k=n.nodeValue.trim(), v=k&&d[k];
+    if(v) jobs.push([n,n.nodeValue.replace(k,()=>v)]);
+  }
+  jobs.forEach(j=>{j[0].nodeValue=j[1]});
+  document.querySelectorAll("[aria-label],[title],[placeholder]").forEach(e=>{
+    ["aria-label","title","placeholder"].forEach(a=>{
+      const v=e.getAttribute(a), r=v&&d[v.trim()];
+      if(r) e.setAttribute(a,r);
+    });
+  });
+}
+/* the language picker; the table HUD is tight on phones, so it asks for codes */
+function langPicker(short){
+  const s=document.createElement("select");
+  s.className="lang"; s.setAttribute("aria-label",t("Language"));
+  LANGS.forEach(([code,name,abbr])=>{
+    const o=document.createElement("option");
+    o.value=code; o.textContent=short?abbr:name; if(code===LANG)o.selected=true;
+    s.append(o);
+  });
+  s.onchange=()=>setLang(s.value);
+  return s;
+}
+
 const SUIT = {
   m:{label:"Characters", zh:"萬", cp:0x1F007, ink:"ink",    hint:"the number, then 萬"},
   s:{label:"Bamboo",     zh:"索", cp:0x1F010, ink:"jade",   hint:"count the sticks — 1 is a bird"},
@@ -9,27 +57,31 @@ const SUIT = {
 const NUM = ["One","Two","Three","Four","Five","Six","Seven","Eight","Nine"];
 const ZHN = ["一","二","三","四","五","六","七","八","九"];
 const HONOR = {
-  E:{cp:0x1F000,label:"East Wind",   zh:"東",ink:"ink",   grp:"wind"},
-  S:{cp:0x1F001,label:"South Wind",  zh:"南",ink:"ink",   grp:"wind"},
-  W:{cp:0x1F002,label:"West Wind",   zh:"西",ink:"ink",   grp:"wind"},
-  N:{cp:0x1F003,label:"North Wind",  zh:"北",ink:"ink",   grp:"wind"},
-  C:{cp:0x1F004,label:"Red Dragon",  zh:"中",ink:"red",   grp:"dragon"},
-  F:{cp:0x1F005,label:"Green Dragon",zh:"發",ink:"jade",  grp:"dragon"},
-  B:{cp:0x1F006,label:"White Dragon",zh:"白",ink:"indigo",grp:"dragon"}
+  E:{cp:0x1F000,en:"East Wind",   short:"East", zh:"東",ink:"ink",   grp:"wind"},
+  S:{cp:0x1F001,en:"South Wind",  short:"South",zh:"南",ink:"ink",   grp:"wind"},
+  W:{cp:0x1F002,en:"West Wind",   short:"West", zh:"西",ink:"ink",   grp:"wind"},
+  N:{cp:0x1F003,en:"North Wind",  short:"North",zh:"北",ink:"ink",   grp:"wind"},
+  C:{cp:0x1F004,en:"Red Dragon",  short:"Red",  zh:"中",ink:"red",   grp:"dragon"},
+  F:{cp:0x1F005,en:"Green Dragon",short:"Green",zh:"發",ink:"jade",  grp:"dragon"},
+  B:{cp:0x1F006,en:"White Dragon",short:"White",zh:"白",ink:"indigo",grp:"dragon"}
 };
 const BONUS = {
-  b1:{cp:0x1F022,label:"Plum flower",  zh:"梅"}, b2:{cp:0x1F023,label:"Orchid flower",zh:"蘭"},
-  b3:{cp:0x1F024,label:"Bamboo flower",zh:"竹"}, b4:{cp:0x1F025,label:"Chrysanthemum flower",zh:"菊"},
-  b5:{cp:0x1F026,label:"Spring season",zh:"春"}, b6:{cp:0x1F027,label:"Summer season",zh:"夏"},
-  b7:{cp:0x1F028,label:"Autumn season",zh:"秋"}, b8:{cp:0x1F029,label:"Winter season",zh:"冬"}
+  b1:{cp:0x1F022,en:"Plum flower",  zh:"梅"}, b2:{cp:0x1F023,en:"Orchid flower",zh:"蘭"},
+  b3:{cp:0x1F024,en:"Bamboo flower",zh:"竹"}, b4:{cp:0x1F025,en:"Chrysanthemum flower",zh:"菊"},
+  b5:{cp:0x1F026,en:"Spring season",zh:"春"}, b6:{cp:0x1F027,en:"Summer season",zh:"夏"},
+  b7:{cp:0x1F028,en:"Autumn season",zh:"秋"}, b8:{cp:0x1F029,en:"Winter season",zh:"冬"}
 };
 const BACK = "🀫";
 
+/* `en` is the lookup key and stays put; `label` and `short` are what you show. */
 function info(id){
-  if(HONOR[id]) return HONOR[id];
-  if(BONUS[id]) return Object.assign({ink:"gold",grp:"bonus"},BONUS[id]);
+  const h=HONOR[id];
+  if(h) return Object.assign({},h,{label:t(h.en),short:t(h.short)});
+  const b=BONUS[id];
+  if(b) return Object.assign({ink:"gold",grp:"bonus",short:t(b.en)},b,{label:t(b.en)});
   const n=+id[0], s=SUIT[id[1]];
-  return {cp:s.cp+n-1, label:NUM[n-1]+" "+s.label, zh:ZHN[n-1]+s.zh, ink:s.ink, grp:"suit"};
+  return {cp:s.cp+n-1, label:t(NUM[n-1]+" "+s.label), short:t(NUM[n-1]),
+          zh:ZHN[n-1]+s.zh, ink:s.ink, grp:"suit"};
 }
 /* U+1F004 defaults to emoji presentation; VS15 forces the flat tile glyph. */
 function glyph(id){ const c=info(id).cp; return String.fromCodePoint(c)+(c===0x1F004?"︎":""); }
@@ -117,7 +169,7 @@ function scoreWin(d,melds,ctx){
     if(!suits.size) add("All honours","字一色",RULES.allh);
     if(dr.length===3) add("Big three dragons","大三元",8);
     else if(dr.length===2&&pairH&&pairH.grp==="dragon") add("Small three dragons","小三元",RULES.s3d);
-    else dr.forEach(m=>add("Dragon pung "+info(m.tiles[0]).zh,"三元牌",1));
+    else dr.forEach(m=>add("Dragon pung","三元牌 "+info(m.tiles[0]).zh,1));
     if(suits.size===1) add(honor?"Half flush":"Full flush",honor?"混一色":"清一色",honor?3:7);
     if(pungs.length===4) add("All pungs","碰碰糊",3);
     if(RULES.allchow&&all.length-pungs.length===4&&!pairH) add("All chows","平糊",RULES.allchow);
@@ -144,12 +196,12 @@ function patList(sc){
   const ul=document.createElement("ul");ul.className="pats";
   sc.pats.forEach(p=>{
     const li=document.createElement("li");
-    li.innerHTML='<span>'+p.n+' <span class="zh">'+p.zh+'</span></span><b>'+p.f+' faan</b>';
+    li.innerHTML='<span>'+t(p.n)+' <span class="zh">'+p.zh+'</span></span><b>'+p.f+' faan</b>';
     ul.append(li);
   });
-  const t=document.createElement("li");t.className="tot";
-  t.innerHTML='<span><b>Total</b></span><b>'+sc.faan+' faan · '+units(sc.faan)+' units</b>';
-  ul.append(t);return ul;
+  const tot=document.createElement("li");tot.className="tot";
+  tot.innerHTML='<span><b>'+t("Total")+'</b></span><b>'+tf("{} faan · {} units",sc.faan,units(sc.faan))+'</b>';
+  ul.append(tot);return ul;
 }
 function meldRow(sets,pair){
   const r=document.createElement("div");r.className="row";r.style.gap=".9rem";
@@ -157,7 +209,7 @@ function meldRow(sets,pair){
     const f=document.createElement("figure");f.className="meld";f.style.margin="0";
     const rr=document.createElement("div");rr.className="row";
     m.tiles.forEach(t=>rr.append(tileEl(t)));
-    const c=document.createElement("figcaption");c.textContent=m.type;
+    const c=document.createElement("figcaption");c.textContent=t(m.type);
     f.append(rr,c);r.append(f);
   });
   return r;
@@ -281,16 +333,16 @@ function explain(a,hand,ctx){
   const h=HONOR[p.t];
   const near=!h&&[-2,-1,1,2].some(d=>{const n=i%9+d;return n>=0&&n<=8&&c[i+d]>0});
   let why;
-  if(have>=3) why="you already hold three of them and a fourth set has nowhere to go";
-  else if(have===2) why="the pair is your spare block — a hand only needs four sets and one eye";
-  else if(h&&shed(p.t,ctx)===2) why="a lone "+(h.grp==="dragon"?"dragon":"wind")
-    +" that would score, but it can never join a run and both remaining copies would have to come to you";
-  else if(h) why="a lone honour: it can never join a run, so it would take both remaining copies to make anything";
-  else if(!near) why="a lone tile with no neighbours in hand — there is nothing here to build on";
-  else why="the loosest tile you hold; the blocks you keep are further along";
+  if(have>=3) why=t("you already hold three of them and a fourth set has nowhere to go");
+  else if(have===2) why=t("the pair is your spare block — a hand only needs four sets and one eye");
+  else if(h&&shed(p.t,ctx)===2) why=tf("a lone {} that would score, but it can never join a run and both remaining copies would have to come to you",
+    t(h.grp==="dragon"?"dragon":"wind"));
+  else if(h) why=t("a lone honour: it can never join a run, so it would take both remaining copies to make anything");
+  else if(!near) why=t("a lone tile with no neighbours in hand — there is nothing here to build on");
+  else why=t("the loosest tile you hold; the blocks you keep are further along");
   const ready=a.sh===0
-    ? "That leaves you ready."
-    : a.sh===1 ? "That leaves you one tile from ready."
-    : "That leaves you "+a.sh+" tiles from ready.";
+    ? t("That leaves you ready.")
+    : a.sh===1 ? t("That leaves you one tile from ready.")
+    : tf("That leaves you {} tiles from ready.",a.sh);
   return {why:why, ready:ready};
 }
