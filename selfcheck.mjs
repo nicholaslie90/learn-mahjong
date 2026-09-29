@@ -195,13 +195,15 @@ RULES.min = 3;
 // pass or claim, discard, and declare a win whenever one is on offer.
 function autoPlay() {
   for (let guard = 0; guard < 4000 && !W.over; guard++) {
-    if (W.phase === "claim" && W.pend) {
+    if (W.phase === "rob") rob(W.pend.from, W.pend.tile, 0);
+    else if (W.phase === "claim" && W.pend) {
       const p = W.pend;
       const take = p.opts.find(o => o.k === "win")
         || (Math.random() < 0.4 ? p.opts[Math.random() * p.opts.length | 0] : null);
       settle(p.from, p.tile, p.bots, take);
     } else if (W.phase === "discard" && W.turn === 0) {
       if (W.canWin) { done({seat: 0, by: null, a: W.canWin, tile: null}); }
+      else if (selfKongs(0).length && Math.random() < 0.7) selfKong(0, selfKongs(0)[0]);
       else {
         const h = W.hand[0].concat(W.drawn[0] ? [W.drawn[0]] : []);
         discard(0, h[Math.random() * h.length | 0]);
@@ -259,6 +261,45 @@ ok(kinds(3).includes("chow"), "chow from the player on your left (seat 3)");
 ok(!kinds(1).includes("chow") && !kinds(2).includes("chow"), "no chow from anyone else");
 W.hand[0] = ["5m","5m","1s","2s","3s","5p","6p","7p","C","C","F","F","N"].map((t,i) => ({i:900+i, t}));
 ok([1,2,3].every(f => options(0, f, "5m").map(o => o.k).includes("pung")), "pung from any seat");
+
+// 11. three in hand plus the fourth drawn: kong it, and a replacement comes off the back
+startRound();
+W.meld[0] = [];
+W.hand[0] = ["6m","7m","7m","7m","5s","5s","6s","8s","8s","8s","1p","3p","6p"].map((t,i) => ({i:900+i, t}));
+W.drawn[0] = {i:913, t:"7m"};
+W.canWin = null; W.phase = "discard"; W.turn = 0;
+ok(selfKongs(0).includes("7m"), "four 7m in hand should offer a kong");
+const back = W.wall[W.wall.length - 1];
+selfKong(0, "7m");
+ok(W.meld[0].length === 1 && W.meld[0][0].type === "kong" && W.meld[0][0].tiles.length === 4, "kong laid down");
+ok(W.hand[0].length === 10 && W.drawn[0], "10 in hand plus a replacement draw");
+ok(BONUS[back.t] || W.drawn[0] === back, "replacement comes from the back of the wall");
+ok(ctxFor(0, true).concealed, "a concealed kong keeps the hand concealed");
+// and the fourth tile onto a melded pung
+W.meld[0].push({type:"pung", tiles:[{i:950,t:"E"},{i:951,t:"E"},{i:952,t:"E"}]});
+W.drawn[0] = {i:953, t:"E"};
+ok(selfKongs(0).includes("E"), "fourth tile onto a pung should offer a kong");
+
+// 12. a win on the kong replacement scores 槓上開花; after a discard it does not
+W.rep = 0;
+ok(ctxFor(0, true).kongDraw && !ctxFor(0, false).kongDraw, "replacement draw flagged only for self-draw");
+ok(scoreWin({pair:"B", sets:[]}, [], {kongDraw:true}).pats.some(p => p.zh === "槓上開花"), "kong replacement faan");
+ok(scoreWin({pair:"B", sets:[]}, [], {robbed:true}).pats.some(p => p.zh === "搶槓"), "robbing the kong faan");
+
+// 13. robbing the kong: Right adds 5m to a pung; we are waiting on 5m, so we may rob it
+startRound();
+W.meld[1] = [{type:"pung", tiles:[{i:960,t:"5m"},{i:961,t:"5m"},{i:962,t:"5m"}]}];
+W.hand[1] = W.hand[1].slice(0, 10); W.drawn[1] = {i:963, t:"5m"};
+W.meld[0] = [];
+W.hand[0] = ["3m","4m","E","E","E","C","C","C","F","F","F","B","B"].map((t,i) => ({i:970+i, t}));
+W.drawn[0] = null; W.turn = 1; W.phase = "discard";
+ok(robbers(1, "5m")[0] === 0, "we are first in line to rob");
+selfKong(1, "5m");
+ok(W.phase === "rob", "robbing is offered, got " + W.phase);
+rob(W.pend.from, W.pend.tile, 0);
+ok(W.over && W.result.seat === 0 && W.result.by === 1, "we win off Right");
+ok(W.result.a.score.pats.some(p => p.zh === "搶槓"), "and it scores robbing the kong");
+ok(W.meld[1][0].type === "pung", "Right's pung stays a pung");
 
 console.log("selfcheck: all assertions passed (" + wins + " wins, " + washouts
   + " washouts in 25 rounds at a " + RULES.min + "-faan minimum)");

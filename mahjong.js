@@ -179,6 +179,8 @@ function scoreWin(d,melds,ctx){
     });
   }
   if(ctx.selfDraw) add("Self-draw","自摸",1);
+  if(ctx.kongDraw) add("Win on a kong replacement","槓上開花",1);
+  if(ctx.robbed) add("Robbing the kong","搶槓",1);
   if(ctx.concealed&&RULES.conc) add("Fully concealed","門前清",RULES.conc);
   for(let i=0;i<(ctx.bonusMatch||0);i++) add("Matching flower","花牌",1);
   if(ctx.bonusCount===0&&RULES.noflw) add("No flowers","無花",RULES.noflw);

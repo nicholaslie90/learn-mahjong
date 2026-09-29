@@ -223,7 +223,8 @@ const meldIds=s=>W.meld[s].map(m=>({type:m.type,tiles:ids(m.tiles)}));
 const full=s=>W.hand[s].concat(W.drawn[s]?[W.drawn[s]]:[]);
 const sortHand=s=>W.hand[s].sort((a,b)=>bySort(a.t,b.t));
 function ctxFor(s,sd){
-  return {seatWind:SEATS[s].w,roundWind:ROUND,selfDraw:!!sd,concealed:W.meld[s].length===0,
+  return {seatWind:SEATS[s].w,roundWind:ROUND,selfDraw:!!sd,concealed:W.meld[s].every(m=>m.hid),
+    kongDraw:!!sd&&W.rep===s,
     bonusCount:W.flow[s].length,
     bonusMatch:W.flow[s].filter(b=>+b.t[1]===s+1||+b.t[1]===s+5).length};
 }
@@ -296,13 +297,15 @@ function positions(g){
     }
     /* exposed melds, laid end to end just inboard of the hand */
     const step=g.tw*0.96, gap=g.tw*0.5;
-    const groups=W.meld[s].map(m=>m.tiles);
-    const tot=groups.reduce((a,t)=>a+t.length*step,0)+Math.max(0,groups.length-1)*gap;
+    const groups=W.meld[s];
+    const tot=groups.reduce((a,m)=>a+m.tiles.length*step,0)+Math.max(0,groups.length-1)*gap;
     let cur=-tot/2;
-    groups.forEach(tiles=>{
-      tiles.forEach(inst=>{
+    groups.forEach(m=>{
+      m.tiles.forEach((inst,k)=>{
         const p=at(s,cur+step/2,g.th*1.12,g);
-        set(inst,Object.assign(p,{sc:.94,face:true,z:20,op:1}));
+        /* a concealed kong shows its two end tiles face down */
+        const face=W.over||!m.hid||(k>0&&k<3);
+        set(inst,Object.assign(p,{sc:.94,face:face,z:20,op:1}));
         cur+=step;
       });
       cur+=gap;
@@ -337,7 +340,8 @@ function seenCounts(){
   const bump=t=>{if(IDX[t]!=null)c[IDX[t]]++};
   ids(full(0)).forEach(bump);
   W.river.forEach(x=>bump(x.t));
-  for(let s=0;s<4;s++)W.meld[s].forEach(m=>m.tiles.forEach(x=>bump(x.t)));
+  for(let s=0;s<4;s++)W.meld[s].forEach(m=>m.tiles.forEach((x,k)=>{
+    if(!(s&&m.hid&&(k===0||k===3)))bump(x.t)}));
   return c;
 }
 let HINTS=true;
@@ -362,6 +366,10 @@ function tipFor(live){
   tip.replaceChildren();
   if(!HINTS||W.over||W.busy){tip.hidden=true;return}
   if(W.phase==="claim"&&W.pend){claimTip(tip);return}
+  if(W.phase==="rob"){
+    tip.append(words("<b>"+t("Take it.")+"</b> "+t("That is your winning tile.")));
+    tip.hidden=false;return;
+  }
   if(!live){tip.hidden=true;return}
   const a=currentAdvice();
   if(!a){tip.hidden=true;return}
@@ -499,8 +507,12 @@ function bar(){
         ()=>settle(p.from,p.tile,p.bots,op));
     });
     mk(t("Pass"),()=>settle(p.from,p.tile,p.bots,null),true);
-  }else if(W.phase==="discard"&&W.turn===0&&W.canWin){
-    mk(t("Win")+" 食糊 · "+tf("{} faan",W.canWin.score.faan),()=>done({seat:0,by:null,a:W.canWin,tile:null}));
+  }else if(W.phase==="rob"&&W.pend){
+    mk(t("Rob the kong")+" 搶槓",()=>rob(W.pend.from,W.pend.tile,0));
+    mk(t("Pass"),passRob,true);
+  }else if(W.phase==="discard"&&W.turn===0){
+    if(W.canWin)mk(t("Win")+" 食糊 · "+tf("{} faan",W.canWin.score.faan),()=>done({seat:0,by:null,a:W.canWin,tile:null}));
+    selfKongs(0).forEach(k=>mk("Kong 槓 "+info(k).zh,()=>selfKong(0,k)));
   }
 }
 
@@ -517,7 +529,7 @@ function startRound(){
   INST=order.map((t,i)=>({i:i,t:t}));
   W={wall:INST.slice(),hand:[[],[],[],[]],meld:[[],[],[],[]],flow:[[],[],[],[]],
      river:[],drawn:[null,null,null,null],turn:0,phase:"",pend:null,canWin:null,
-     over:false,result:null,busy:true};
+     over:false,result:null,busy:true,rep:null};
   NODES.forEach(n=>{n.shown=null;n.cls="";n.glyph.textContent="";n.el.className="pt";n.el.style.transition="none"});
   paint();
   /* let every tile land on the wall before transitions switch back on */
@@ -569,18 +581,73 @@ function turnOf(s){
   if(!W.wall.length)return done(null);
   W.turn=s;W.pend=null;W.phase="draw";
   W.drawn[s]=takeLive(s,false);
+  afterDraw(s,"");
+}
+function afterDraw(s,note){
   if(!W.drawn[s])return done(null);
   const win=look(s,true), can=declarable(win);
   if(can&&s!==0)return done({seat:s,by:null,a:win,tile:null});
   W.canWin=(s===0&&can)?win:null;
   W.phase="discard";
-  say(s===0
+  const ks=selfKongs(s);
+  say(note+(s===0
     ? (can?t("You can declare a win — or discard and keep going.")
       : win?tf("Complete, but only {} faan and this table needs {}. Keep building.",win.score.faan,RULES.min)
+      : ks.length?tf("You can declare a Kong on the {} — or pick a tile to discard.",info(ks[0]).label)
       : t("Your turn. Pick a tile to discard."))
-    : tf("<b>{}</b> is thinking…",SEATS[s].n));
+    : tf("<b>{}</b> is thinking…",SEATS[s].n)));
   paint();
-  if(s!==0)later(()=>botDiscard(s),THINK);
+  if(s!==0)later(()=>ks.length?selfKong(s,ks[0]):botDiscard(s),THINK);
+}
+/* kongs declarable on your own turn: four in hand, or the fourth onto a melded pung */
+function selfKongs(s){
+  const h=ids(full(s)),c=counts(h);
+  return [...new Set(h)].filter(t=>c[IDX[t]]===4
+    ||W.meld[s].some(m=>m.type==="pung"&&m.tiles[0].t===t));
+}
+/* lay the kong down and take a replacement from the back of the wall */
+function selfKong(s,t,passed){
+  if(W.over)return;
+  const p=W.meld[s].find(m=>m.type==="pung"&&m.tiles[0].t===t);
+  /* adding to a pung exposes that tile: anyone who wins on it may rob the kong */
+  if(p&&!passed){
+    const r=robbers(s,t);
+    if(r[0]===0){
+      W.phase="rob";W.pend={from:s,tile:t};
+      say(tf("<b>{}</b> adds the {} to their pung — rob the kong to win, or pass.",SEATS[s].n,info(t).label));
+      paint();return;
+    }
+    if(r.length)return rob(s,t,r[0]);
+  }
+  if(W.drawn[s]){W.hand[s].push(W.drawn[s]);W.drawn[s]=null}
+  const four=W.hand[s].filter(x=>x.t===t);
+  W.hand[s]=W.hand[s].filter(x=>x.t!==t);
+  if(p){p.type="kong";p.tiles.push(...four)}
+  else W.meld[s].push({type:"kong",hid:true,tiles:four});
+  sortHand(s);
+  W.drawn[s]=takeLive(s,true);W.rep=s;
+  afterDraw(s,(s===0?tf("You declare a Kong on the {}.",info(t).label)
+    :tf("<b>{}</b> declares a Kong on the {}.",SEATS[s].n,info(t).label))+" ");
+}
+const robCtx=o=>Object.assign(ctxFor(o,false),{robbed:true});
+/* seats that could win on this tile, nearest in turn order first */
+function robbers(s,t){
+  return [1,2,3].map(d=>(s+d)%4).filter(o=>
+    declarable(analyze(ids(full(o)).concat([t]),meldIds(o),robCtx(o))));
+}
+function rob(s,t,w){
+  if(W.over)return;
+  W.pend=null;
+  if(W.drawn[s]){W.hand[s].push(W.drawn[s]);W.drawn[s]=null}
+  const inst=W.hand[s].splice(W.hand[s].findIndex(x=>x.t===t),1)[0];
+  const a=analyze(ids(full(w)).concat([t]),meldIds(w),robCtx(w));
+  W.hand[w].push(inst);sortHand(w);sortHand(s);
+  done({seat:w,by:s,a:a,tile:t});
+}
+function passRob(){
+  const p=W.pend;W.pend=null;W.phase="discard";
+  const r=robbers(p.from,p.tile).filter(o=>o!==0);
+  r.length?rob(p.from,p.tile,r[0]):selfKong(p.from,p.tile,true);
 }
 function tileValue(s,t,c){
   const i=IDX[t];let v=0;
@@ -613,7 +680,7 @@ function discard(s,inst){
     if(W.drawn[s]){W.hand[s].push(W.drawn[s]);W.drawn[s]=null;sortHand(s)}
   }
   W.river.push(inst);
-  W.canWin=null;W.phase="";
+  W.canWin=null;W.phase="";W.rep=null;
   const bots=[];
   for(let p=1;p<4;p++){
     if(p===s)continue;
@@ -695,7 +762,7 @@ function meld(s,w,inst){
     W.meld[s].push({type:"pung",tiles:[pull(inst.t),inst,pull(inst.t)].filter(Boolean)});
   }else{
     W.meld[s].push({type:"kong",tiles:[pull(inst.t),pull(inst.t),inst,pull(inst.t)].filter(Boolean)});
-    W.drawn[s]=takeLive(s,true);
+    W.drawn[s]=takeLive(s,true);W.rep=s;
   }
   sortHand(s);
 }
