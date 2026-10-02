@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Spline+Sans:wght@300..700&family=Noto+Sans+Symbols+2&display=swap" rel="stylesheet">
+<script>try{if(localStorage.getItem("mj-variant")==="riichi")document.documentElement.dataset.v="ri"}catch(e){}</script>
 <style>
 :root{
   --paper:#F4EDDD; --paper-2:#FBF7EC; --line:#DDD1B6;
@@ -174,6 +175,20 @@ select.lang{flex:none;font:inherit;font-size:.8rem;color:var(--ink-2);background
   background-repeat:no-repeat;background-position:right .55rem center;background-size:.55rem}
 select.lang:hover,select.lang:focus-visible{color:var(--ink);border-color:var(--ink-3)}
 
+/* ── variant switch: data-v="hk" shows in Hong Kong, data-v="ri" in Riichi ── */
+html:not([data-v=ri]) [data-v=ri],html[data-v=ri] [data-v=hk]{display:none!important}
+.ctx{display:flex;flex-wrap:wrap;gap:.5rem .9rem;align-items:center;margin-top:1.1rem;font-size:.86rem;color:var(--ink-2)}
+.ctx label{display:flex;align-items:center;gap:.35rem}
+.ctx select{font:inherit;font-size:.84rem;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:.4rem;padding:.2rem .3rem;max-width:100%}
+.ctx input{accent-color:var(--felt)}
+.ptw{overflow-x:auto}
+.ptab th,.ptab td{padding:.4rem .3rem;font-size:.78rem;line-height:1.35;text-align:center}
+.ptab td.num{font-weight:500}
+.ptab th:first-child,.ptab td:first-child{text-align:left}
+.ptab .sm{display:block;color:var(--ink-3);font-weight:400}
+.yk th[colspan]{text-align:left;padding-top:1.1rem}
+.fu{margin:.5rem 0 0;padding-left:1.1rem;color:var(--ink-2);font-size:.94rem}
+.fu li{margin:.2rem 0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
 </style>
 </head>
@@ -182,14 +197,17 @@ select.lang:hover,select.lang:focus-visible{color:var(--ink);border-color:var(--
 <nav><div class="wrap">
   <b>Learn Mahjong</b>
   <a href="#tiles">Tiles</a><a href="#sets">Sets</a><a href="#build">Build</a><a href="#play">Play</a><a href="#scoring">Scoring</a><a href="#table">Table</a><a href="#practice">Drills</a>
-  <span id="langslot"></span>
+  <span id="varslot"></span><span id="langslot"></span>
 </div></nav>
 
 <header>
   <div class="wrap">
-    <p class="eyebrow">Hong Kong old style &middot; <span class="zh">香港麻雀</span></p>
-    <h1>Four sets, one pair, and <em>a lot of shouting</em>.</h1>
-    <p class="lede">That's the whole game. Everything else — the 144 tiles, the claims, the faan — is detail you pick up one round at a time. Start with a finished hand.</p>
+    <p class="eyebrow" data-v="hk">Hong Kong old style &middot; <span class="zh">香港麻雀</span></p>
+    <p class="eyebrow" data-v="ri">Riichi, Tenhou rules &middot; <span class="zh">リーチ麻雀</span></p>
+    <h1 data-v="hk">Four sets, one pair, and <em>a lot of shouting</em>.</h1>
+    <h1 data-v="ri">Four sets, one pair, and <em>one yaku</em>.</h1>
+    <p class="lede" data-v="hk">That's the whole game. Everything else — the 144 tiles, the claims, the faan — is detail you pick up one round at a time. Start with a finished hand.</p>
+    <p class="lede" data-v="ri">That's the whole game, plus one catch: a hand needs at least one yaku to win. Everything else — the 136 tiles, the calls, the han and fu — is detail you pick up one round at a time. Start with a finished hand.</p>
     <div class="rack" id="rack"></div>
   </div>
 </header>
@@ -198,9 +216,15 @@ select.lang:hover,select.lang:focus-visible{color:var(--ink);border-color:var(--
 
 <section id="tiles"><div class="wrap">
   <span class="mark">牌</span>
-  <h2>The 144 tiles</h2>
-  <p class="sub">136 tiles that count, plus 8 bonus tiles that don't sit in your hand. Three suits run 1&ndash;9 and can form runs. Honours never form runs — only identical groups.</p>
+  <h2 data-v="hk">The 144 tiles</h2>
+  <h2 data-v="ri">The 136 tiles</h2>
+  <p class="sub" data-v="hk">136 tiles that count, plus 8 bonus tiles that don't sit in your hand. Three suits run 1&ndash;9 and can form runs. Honours never form runs — only identical groups.</p>
+  <p class="sub" data-v="ri">Four copies of each of 34 tiles, and nothing else — no flowers, no seasons. Three suits run 1&ndash;9 and can form runs. Honours never form runs — only identical groups.</p>
   <div id="reference"></div>
+  <div class="card" data-v="ri" style="margin-top:1.8rem">
+    <h3>Three red fives <span class="zh" style="color:var(--gold)">赤ドラ</span></h3>
+    <p style="margin:.4rem 0 0;color:var(--ink-2)">One 5 in each suit is printed red — the 5 of characters, bamboo and circles. They play exactly like any other 5, but each one in your hand is worth a bonus han (aka-dora). The dragons are called haku <span class="zh">白</span>, hatsu <span class="zh">發</span> and chun <span class="zh">中</span>.</p>
+  </div>
 </div></section>
 
 <section id="sets"><div class="wrap">
@@ -208,7 +232,11 @@ select.lang:hover,select.lang:focus-visible{color:var(--ink);border-color:var(--
   <h2>What you're building</h2>
   <p class="sub">A winning hand is four sets plus one pair — 14 tiles. Every set is one of three shapes.</p>
   <div class="grid g2" id="setcards"></div>
-  <div class="card" style="margin-top:1rem">
+  <div class="card" data-v="ri" style="margin-top:1rem">
+    <h3>Closed kan, open kan</h3>
+    <p style="margin:.4rem 0 0;color:var(--ink-2)">A kan is still one set, with a replacement tile drawn from the dead wall and a new kan-dora flipped. Declare it from four tiles in your own hand and it stays closed — your hand keeps its concealed bonuses. Call it off a discard, or add a fourth tile to a pon, and it is open.</p>
+  </div>
+  <div class="card" data-v="hk" style="margin-top:1rem">
     <h3>A kong is still one set</h3>
     <p style="margin:.4rem 0 0;color:var(--ink-2)">Four identical tiles count as a single set, so you draw a replacement tile from the back of the wall to stay at the right hand size. Declaring a kong is optional — it adds a little value and one more tile you can't change.</p>
   </div>
@@ -217,10 +245,19 @@ select.lang:hover,select.lang:focus-visible{color:var(--ink);border-color:var(--
 <section id="build"><div class="wrap">
   <span class="mark">砌牌</span>
   <h2>Build a hand</h2>
-  <p class="sub">Click tiles to add them; click one in your hand to take it back. At 13 tiles it tells you which tiles would finish the hand. At 14 it tells you whether you've won and what it scores.</p>
+  <p class="sub" data-v="hk">Click tiles to add them; click one in your hand to take it back. At 13 tiles it tells you which tiles would finish the hand. At 14 it tells you whether you've won and what it scores.</p>
+  <p class="sub" data-v="ri">Click tiles to add them; click one in your hand to take it back. At 13 tiles it tells you which tiles would finish the hand, seven pairs included. At 14 it scores the hand — the last tile you added is the winning tile.</p>
   <div class="card" style="margin-top:1.7rem">
     <div class="pal" id="pal"></div>
     <div class="handbox" id="bhand"></div>
+    <div class="ctx" data-v="ri">
+      <label>Win by <select id="cwin"><option value="ron">Ron ロン</option><option value="tsumo">Tsumo ツモ</option></select></label>
+      <label><input type="checkbox" id="crii"> Riichi 立直</label>
+      <label><input type="checkbox" id="cdlr"> Dealer 親</label>
+      <label>Seat wind <select id="cseat"><option value="E">East</option><option value="S" selected>South</option><option value="W">West</option><option value="N">North</option></select></label>
+      <label>Round wind <select id="crnd"><option value="E" selected>East</option><option value="S">South</option><option value="W">West</option><option value="N">North</option></select></label>
+      <label>Dora indicator <select id="cdora"></select></label>
+    </div>
     <div class="qfoot" style="margin-top:.9rem">
       <button class="ghost" id="brand">Deal a winning hand</button>
       <button class="ghost" id="bwait">Deal a hand one tile short</button>
@@ -231,7 +268,7 @@ select.lang:hover,select.lang:focus-visible{color:var(--ink);border-color:var(--
   </div>
 </div></section>
 
-<section id="play"><div class="wrap">
+<section id="play"><div class="wrap" data-v="hk">
   <span class="mark">打牌</span>
   <h2>How a round plays</h2>
   <p class="sub">Four players, seats named East, South, West and North, turns moving counter-clockwise. East deals and starts with 14 tiles; everyone else holds 13.</p>
@@ -253,7 +290,44 @@ select.lang:hover,select.lang:focus-visible{color:var(--ink);border-color:var(--
   <p style="margin-top:1rem;color:var(--ink-2);font-size:.92rem">Flowers and seasons never stay in hand: reveal one the moment you draw it and take a replacement tile.</p>
 </div></section>
 
-<section id="scoring"><div class="wrap">
+<section id="play"><div class="wrap" data-v="ri">
+  <span class="mark">打牌</span>
+  <h2>How a round plays</h2>
+  <p class="sub">Four players, seats named East, South, West and North, turns moving counter-clockwise. East deals and starts with 14 tiles; everyone else holds 13. A game is a hanchan: an East round, then a South round.</p>
+
+  <div class="grid g2">
+    <div class="card"><h3>Your turn</h3><p style="margin:.4rem 0 0;color:var(--ink-2)">Draw one tile, then discard one face up. Discards stay in front of you in the order thrown — that river is what everyone reads. Declare a kan or a win instead of discarding when you can.</p></div>
+    <div class="card"><h3>Someone else's discard</h3><p style="margin:.4rem 0 0;color:var(--ink-2)">You may interrupt to claim it, show the meld face up, then discard and play resumes from you. Skipped players lose their turn. Any claim except a win opens your hand.</p></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Call</th><th>Whose discard</th><th>What you show</th><th>Beats</th></tr></thead>
+    <tbody>
+      <tr><td><b class="zh">ロン</b> Ron</td><td>Anyone</td><td>Your complete hand — with a yaku</td><td>Everything</td></tr>
+      <tr><td><b class="zh">ポン</b> Pon</td><td>Anyone</td><td>Your two matching tiles</td><td>Chi</td></tr>
+      <tr><td><b class="zh">カン</b> Kan</td><td>Anyone</td><td>Your three matching tiles</td><td>Chi</td></tr>
+      <tr><td><b class="zh">チー</b> Chi</td><td class="num">Left player only</td><td>Two tiles either side of a run</td><td>Nothing</td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid g2">
+    <div class="card"><h3>Riichi <span class="zh" style="color:var(--gold)">立直</span></h3>
+      <p style="margin:.4rem 0 0;color:var(--ink-2);font-size:.94rem">With a closed hand that is one tile from winning, you may declare riichi as you discard: put out a 1,000-point stick and turn the discard sideways. You need at least 1,000 points and at least four tiles left in the wall. From then on your hand is locked — draw, and throw back what you drew unless it wins (or is a closed kan that keeps your wait). In return you get a yaku, and the ura-dora under the indicators when you win.</p></div>
+    <div class="card"><h3>Furiten <span class="zh" style="color:var(--gold)">振聴</span></h3>
+      <p style="margin:.4rem 0 0;color:var(--ink-2);font-size:.94rem">You cannot win on a discard, only by tsumo, in three cases. Permanent: a tile you wait on is in your own river. Temporary: you passed on a winning discard — it lasts until your next discard. Riichi furiten: you passed on a win after declaring riichi, for the rest of the hand.</p></div>
+    <div class="card"><h3>Dora <span class="zh" style="color:var(--gold)">ドラ</span></h3>
+      <p style="margin:.4rem 0 0;color:var(--ink-2);font-size:.94rem">An indicator is flipped on the dead wall; the dora is the next tile in order — 9 wraps to 1, the winds run East, South, West, North, and the dragons run haku, hatsu, chun. Each dora you hold is 1 han. Every kan flips another indicator (kan-dora), and a riichi win also counts the ura-dora beneath. Dora never counts as a yaku — you still need one.</p></div>
+    <div class="card"><h3>Draws <span class="zh" style="color:var(--gold)">流局</span></h3>
+      <p style="margin:.4rem 0 0;color:var(--ink-2);font-size:.94rem">When the live wall runs out, players who are ready (tenpai) split 3,000 points from those who are not; if everyone or nobody is ready, nothing moves. Some deals are abandoned at once: nine different terminals and honours in your opening hand if you choose to, four of the same wind discarded first time round, four riichi, four kans by different players, or three players calling ron on one tile.</p></div>
+  </div>
+
+  <div class="card" style="margin-top:1rem">
+    <h3>A hanchan <span class="zh" style="color:var(--gold)">半荘</span></h3>
+    <p style="margin:.4rem 0 0;color:var(--ink-2);font-size:.94rem">Everyone starts on 25,000. The dealer seat rotates after each hand — unless the dealer wins or the hand ends in a draw with the dealer ready, in which case the dealer repeats and a honba counter is added. Each honba is worth 300 extra to the winner. Unclaimed riichi sticks wait on the table for the next winner. After the South round, if nobody has reached 30,000, play continues into the West round until someone does.</p>
+  </div>
+</div></section>
+
+<section id="scoring"><div class="wrap" data-v="hk">
   <span class="mark">番</span>
   <h2>Faan, and what it costs</h2>
   <p class="sub">Value is counted in faan. Most tables set a minimum of 3 faan to declare a win, and cap payouts at 10. Faan stack — a concealed self-drawn all-pungs hand collects all three.</p>
@@ -283,14 +357,14 @@ select.lang:hover,select.lang:focus-visible{color:var(--ink);border-color:var(--
     </tbody>
   </table>
 
-  <div class="card rules" id="rules" style="margin-top:1.8rem">
+  <div class="card rules" id="rules" data-v="hk" style="margin-top:1.8rem">
     <h3>House rules</h3>
     <p style="margin:.35rem 0 0;color:var(--ink-2);font-size:.94rem;max-width:62ch">Hong Kong old style is a family of tables, not one rulebook. These are the points that genuinely move; change them and the table, the builder and the faan list above all follow. Patterns from other variants — three similar sequences <span class="zh">三色同順</span>, say, which is Riichi and Chinese Official but not Hong Kong — are deliberately absent.</p>
     <div id="ruleList"></div>
     <button class="ghost" id="ruleReset" style="margin-top:.9rem">Back to the usual table</button>
   </div>
 
-  <div class="grid g2" style="margin-top:1.8rem">
+  <div class="grid g2" data-v="hk" style="margin-top:1.8rem">
     <div class="card">
       <h3>Faan to units</h3>
       <table style="margin-top:.7rem">
@@ -307,6 +381,49 @@ select.lang:hover,select.lang:focus-visible{color:var(--ink);border-color:var(--
       <p style="margin:.4rem 0 0;color:var(--ink-2)">Win on a discard and the discarder pays the whole amount alone. Win on your own draw and all three opponents pay it each — which is why <span class="zh">自摸</span> hurts.</p>
       <p style="margin:.8rem 0 0;color:var(--ink-3);font-size:.88rem">Payout tables and the exact faan for smaller patterns vary table to table. Agree on house rules before the first deal.</p>
     </div>
+  </div>
+</div>
+  <div class="wrap" data-v="ri">
+  <span class="mark">役</span>
+  <h2>Yaku, han and fu</h2>
+  <p class="sub">A hand is worth han (doublings) and fu (minipoints). To win at all you need at least one yaku — a scoring pattern. Dora add han but are not a yaku. Closed means you never claimed a discard; a closed kan is still closed.</p>
+
+  <table class="yk">
+    <thead><tr><th>Yaku</th><th>Closed</th><th>Open</th><th>What it means</th></tr></thead>
+    <tbody id="yakuBody"></tbody>
+  </table>
+
+  <div class="grid g2" style="margin-top:1.8rem">
+    <div class="card">
+      <h3>The one-yaku rule</h3>
+      <p style="margin:.4rem 0 0;color:var(--ink-2)">A complete hand with no yaku cannot win — there is no minimum han, but there must be a yaku. Dora, red fives and ura-dora only add to a hand that already has one. Open tanyao is allowed, and riichi is the easy way to make any closed hand legal.</p>
+    </div>
+    <div class="card">
+      <h3>Counting fu</h3>
+      <ul class="fu">
+        <li>Start at 20.</li>
+        <li>Closed hand won by ron: +10. Tsumo: +2.</li>
+        <li>Pon: 2 open, 4 closed; double for terminals and honours; kan is four times a pon.</li>
+        <li>Pair of dragons, seat wind or round wind: +2.</li>
+        <li>Wait on the middle of a run, an edge, or a single tile: +2.</li>
+        <li>Round up to the next 10.</li>
+        <li>Pinfu: 20 on tsumo, 30 on ron. Seven pairs: always 25.</li>
+      </ul>
+    </div>
+  </div>
+
+  <p class="sub" style="margin-top:1.8rem">Base points are fu &times; 2<sup>han+2</sup>, capped at 2,000 (mangan). A discarder pays four times base to a non-dealer and six times to a dealer; on tsumo a non-dealer collects base from two players and twice that from the dealer. Everything rounds up to 100. Each cell shows non-dealer on top, dealer below.</p>
+  <div class="grid g2" style="margin-top:.4rem">
+    <div class="ptw"><table class="ptab"><thead><tr><th>Ron</th><th>1 han</th><th>2 han</th><th>3 han</th><th>4 han</th></tr></thead><tbody id="ronBody"></tbody></table></div>
+    <div class="ptw"><table class="ptab"><thead><tr><th>Tsumo</th><th>1 han</th><th>2 han</th><th>3 han</th><th>4 han</th></tr></thead><tbody id="tsumoBody"></tbody></table></div>
+  </div>
+  <p style="margin:.6rem 0 0;color:var(--ink-3);font-size:.86rem">Tsumo, non-dealer: what the two others pay, then the dealer. Tsumo, dealer: what each player pays. Honba add 300 in total; riichi sticks go to the winner.</p>
+
+  <div class="ptw"><table class="ptab" style="margin-top:1.4rem"><thead><tr><th>Limit</th><th>Han</th><th>Ron</th><th>Tsumo</th></tr></thead><tbody id="limBody"></tbody></table></div>
+
+  <div class="card rules" style="margin-top:1.8rem">
+    <h3>Fixed rules</h3>
+    <p style="margin:.35rem 0 0;color:var(--ink-2);font-size:.94rem;max-width:62ch">This table plays Tenhou's rules: three red fives, open tanyao, no rounding up to mangan, and 13 han counts as yakuman. They are not settings here.</p>
   </div>
 </div></section>
 
@@ -343,20 +460,35 @@ select.lang:hover,select.lang:focus-visible{color:var(--ink);border-color:var(--
 </main>
 
 <footer><div class="wrap">
-  Hong Kong old style. Built as a single static page — <a href="https://github.com/nicholaslie90/learn-mahjong">source on GitHub</a>. Tiles are Unicode glyphs (U+1F000–U+1F02B); if they look plain, your system font is drawing them.
+  <span data-v="hk">Hong Kong old style.</span><span data-v="ri">Riichi, played to Tenhou's rules.</span> Built as a single static page — <a href="https://github.com/nicholaslie90/learn-mahjong">source on GitHub</a>. Tiles are Unicode glyphs (U+1F000–U+1F02B); if they look plain, your system font is drawing them.
 </div></footer>
 
 <script src="mahjong.js"></script>
+<script src="riichi.js"></script>
 <script src="i18n.js"></script>
 <script>
 "use strict";
+const RI=VARIANT==="riichi";
+document.documentElement.dataset.v=RI?"ri":"hk";
+if(RI) document.title=t("Learn Mahjong — Riichi rules, tile by tile");
 el("langslot").replaceWith(langPicker());
+/* the variant picker, styled like the language one */
+(function(){
+  const sel=document.createElement("select");
+  sel.className="lang"; sel.setAttribute("aria-label",t("Variant"));
+  [["hk","Hong Kong 香港"],["riichi","Riichi 立直"]].forEach(([v,n])=>{
+    const o=document.createElement("option"); o.value=v; o.textContent=t(n); if(v===VARIANT)o.selected=true; sel.append(o);
+  });
+  sel.onchange=()=>setVariant(sel.value);
+  el("varslot").replaceWith(sel);
+})();
 /* ── page pieces ───────────────────────────────────────────── */
 const rowEl=(ids,opts)=>{const d=document.createElement("div");d.className="row";ids.forEach((id,n)=>d.append(tileEl(id,Object.assign({i:n},opts))));return d;};
 
 /* ── hero: a finished hand ────────────────────────────────── */
 const HAND=[["2m","3m","4m"],["5s","5s","5s"],["7p","8p","9p"],["E","E","E"],["B","B"]];
-const MELDNAME=()=>["Chow <span>上</span>","Pung <span>碰</span>","Chow <span>上</span>","Pung <span>碰</span>",t("Pair")+" <span>眼</span>"];
+const MELDNAME=()=>RI?["Chi <span>チー</span>","Pon <span>ポン</span>","Chi <span>チー</span>","Pon <span>ポン</span>",t("Pair")+" <span>雀頭</span>"]
+  :["Chow <span>上</span>","Pung <span>碰</span>","Chow <span>上</span>","Pung <span>碰</span>",t("Pair")+" <span>眼</span>"];
 (function(){
   const rack=document.getElementById("rack"); let n=0;
   HAND.forEach((meld,mi)=>{
@@ -391,13 +523,23 @@ const MELDNAME=()=>["Chow <span>上</span>","Pung <span>碰</span>","Chow <span>
     tf("36 tiles &middot; four of each &middot; {}",t(SUIT[k].hint)),
     nums(k), short));
   block(t("Winds")+' <span class="zh">風</span>',t("16 tiles &middot; four of each &middot; they mark the seats"),["E","S","W","N"],short);
+  if(RI){
+    const dn={B:"Haku &middot; white",F:"Hatsu &middot; green",C:"Chun &middot; red"};
+    block(t("Dragons")+' <span class="zh">三元牌</span>',t("12 tiles &middot; four of each &middot; every pon is a yaku"),["B","F","C"],id=>t(dn[id]));
+    return;
+  }
   block(t("Dragons")+' <span class="zh">三元牌</span>',t("12 tiles &middot; four of each &middot; every pung is worth faan"),["C","F","B"],short);
   block(t("Flowers &amp; seasons")+' <span class="zh">花牌</span>',t("8 tiles &middot; one of each &middot; bonus only, never held in hand"),Object.keys(BONUS),(id,i)=>i.label);
 })();
 
 /* ── set cards ────────────────────────────────────────────── */
 (function(){
-  const cards=[
+  const cards=RI?[
+    ["Chi","チー","Three tiles in a run, same suit. Honours can't make runs — <span class=\"zh\">東南西</span> is not a sequence.",["3p","4p","5p"]],
+    ["Pon","ポン","Three identical tiles. Any tile in the game can make one.",["W","W","W"]],
+    ["Kan","カン","Four identical tiles. Draw a replacement from the dead wall and carry on.",["6m","6m","6m","6m"]],
+    ["Pair","雀頭","Two identical tiles — the head. Exactly one per hand.",["9s","9s"]]
+  ]:[
     ["Chow","上","Three tiles in a run, same suit. Honours can't make runs — <span class=\"zh\">東南西</span> is not a sequence.",["3p","4p","5p"]],
     ["Pung","碰","Three identical tiles. Any tile in the game can make one.",["W","W","W"]],
     ["Kong","槓","Four identical tiles. Draw a replacement and carry on.",["6m","6m","6m","6m"]],
@@ -417,7 +559,7 @@ const MELDNAME=()=>["Chow <span>上</span>","Pung <span>碰</span>","Chow <span>
 const g=id=>'<span class="tile ink-'+info(id).ink+'">'+glyph(id)+'</span>';
 
 function qName(){
-  const pool=ALL.concat(Object.keys(BONUS));
+  const pool=RI?ALL:ALL.concat(Object.keys(BONUS));
   const tl=pick(pool), right=info(tl).label;
   const wrong=shuffle(pool.filter(x=>info(x).label!==right)).slice(0,3).map(x=>info(x).label);
   return {prompt:t("Which tile is this?"), tiles:[tl], options:shuffle([right].concat(wrong)), answer:right,
@@ -425,22 +567,22 @@ function qName(){
 }
 
 function qSet(){
-  const CHOW="Chow 順子", PUNG="Pung 刻子", NONE=t("Not a set");
+  const CHOW=RI?t("Chi チー"):"Chow 順子", PUNG=RI?t("Pon ポン"):"Pung 刻子", NONE=t("Not a set");
   const kind=pick(["chow","pung","none","none"]);
   let tiles, answer, why;
   if(kind==="chow"){
     const k=pick(["m","s","p"]), n=1+(Math.random()*7|0);
     tiles=[n+k,(n+1)+k,(n+2)+k]; answer=CHOW;
-    why=t("Three in a row in the same suit — a chow. You may only claim one from the player on your left.");
+    why=RI?t("Three in a row in the same suit — a chi. You may only call one from the player on your left."):t("Three in a row in the same suit — a chow. You may only claim one from the player on your left.");
   }else if(kind==="pung"){
-    const t=pick(ALL); tiles=[t,t,t]; answer=PUNG;
-    why=t("Three identical tiles — a pung. Claimable from anyone, and it outranks a chow.");
+    const x=pick(ALL); tiles=[x,x,x]; answer=PUNG;
+    why=RI?t("Three identical tiles — a pon. Callable from anyone, and it outranks a chi."):t("Three identical tiles — a pung. Claimable from anyone, and it outranks a chow.");
   }else{
     answer=NONE;
     const trap=pick(["honor-run","gap","cross","mixed"]);
     if(trap==="honor-run"){
       const w=shuffle(pick([["E","S","W"],["S","W","N"],["C","F","B"]]));
-      tiles=w; why=t("Honours have no order, so they never form runs. Winds and dragons only ever group as pairs, pungs and kongs.");
+      tiles=w; why=RI?t("Honours have no order, so they never form runs. Winds and dragons only ever group as pairs, pons and kans."):t("Honours have no order, so they never form runs. Winds and dragons only ever group as pairs, pungs and kongs.");
     }else if(trap==="gap"){
       const k=pick(["m","s","p"]), n=1+(Math.random()*5|0);
       tiles=[n+k,(n+2)+k,(n+3)+k]; why=t("There's a gap. A chow has to be three consecutive numbers.");
@@ -461,23 +603,41 @@ function formsRun(hand,discard){
   const n=all.map(t=>+t[0]).sort();
   return n[1]===n[0]+1 && n[2]===n[1]+1;
 }
+/* riichi: a ready closed hand and a discard — is it a legal ron? */
+function qRon(){
+  const seat=pick(["the player on your left","the player across from you","the player on your right"]);
+  const want=Math.random()<.5; let hand,disc,sc;
+  for(let i=0;i<300;i++){
+    hand=randomHand(13); const w=rWaits(hand,[]); if(!w.length) continue;
+    disc=pick(w);
+    sc=rScore(hand.concat([disc]).sort(bySort),[],disc,{seatWind:"S",roundWind:"E",dealer:false,tsumo:false,dora:[],ura:[],aka:0});
+    if(rCanWin(sc)===want) break;
+  }
+  const yes=rCanWin(sc), RON=t("Ron ロン"), NO=t("No — no yaku");
+  const Seat=t(seat).charAt(0).toUpperCase()+t(seat).slice(1);
+  return {prompt:tf("Your closed hand is ready, but you haven't declared riichi and hold no dora. {} discards the tile on the right. Can you call Ron?",Seat),
+    tiles:hand.concat(["gap",disc]), options:[RON,NO], answer:yes?RON:NO,
+    why:yes?tf("It completes the hand and the hand has a yaku: {}. Ron works on any seat's discard.",sc.yaku.map(y=>t(y.n)).join(", "))
+      :t("It does complete the shape, but there is no yaku, and a hand needs at least one to win. Declare riichi first, or build a yaku.")};
+}
 function qClaim(){
-  const PUNG="Pung 碰", CHOW="Chow 上", NO=t("Can't claim it");
+  if(RI&&Math.random()<.3) return qRon();
+  const PUNG=RI?t("Pon ポン"):"Pung 碰", CHOW=RI?t("Chi チー"):"Chow 上", NO=t("Can't claim it");
   const seats=[["the player on your left",true],["the player across from you",false],["the player on your right",false]];
   const [seat,isLeft]=pick(seats);
   const kind=pick(["pung","chow","chow","none"]);
   let discard, hand, answer, why;
   if(kind==="pung"){
     discard=pick(ALL); hand=[discard,discard]; answer=PUNG;
-    why=tf("A pung can be claimed from any seat, so it doesn't matter that it came from {}.",t(seat));
+    why=tf(RI?"A pon can be called from any seat, so it doesn't matter that it came from {}.":"A pung can be claimed from any seat, so it doesn't matter that it came from {}.",t(seat));
   }else if(kind==="chow"){
     const k=pick(["m","s","p"]), n=1+(Math.random()*7|0), run=[n+k,(n+1)+k,(n+2)+k];
     const i=Math.random()*3|0;
     discard=run[i]; hand=run.filter((_,j)=>j!==i);
     answer=isLeft?CHOW:NO;
     why=isLeft
-      ? t("Your two tiles complete the run, and a chow may only be claimed from the player on your left — which is exactly who discarded.")
-      : tf("Your tiles do complete a run, but a chow can only be taken from the player on your left. From {}, let it go.",t(seat));
+      ? t(RI?"Your two tiles complete the run, and a chi may only be called from the player on your left — which is exactly who discarded.":"Your two tiles complete the run, and a chow may only be claimed from the player on your left — which is exactly who discarded.")
+      : tf(RI?"Your tiles do complete a run, but a chi can only be taken from the player on your left. From {}, let it go.":"Your tiles do complete a run, but a chow can only be taken from the player on your left. From {}, let it go.",t(seat));
   }else{
     discard=pick(ALL);
     do{ hand=shuffle(ALL).slice(0,2); }
@@ -515,7 +675,26 @@ function qFaan(){
   return {prompt:t("What is this hand worth?"), tiles:h.tiles, options:shuffle([nm(h)].concat(wrong)), answer:nm(h), why:t(h.why)};
 }
 
-const MODES=[["Name the tile",qName],["Chow, pung or nothing",qSet],["Can you claim it?",qClaim],["Score the hand",qFaan]];
+/* riichi: how many han and fu is a random complete hand worth? */
+function qHan(){
+  let h,win,sc,cx;
+  for(let i=0;i<300;i++){
+    h=randomHand(14); win=pick(h);
+    cx={seatWind:"S",roundWind:"E",dealer:false,tsumo:Math.random()<.5,riichi:Math.random()<.5,dora:[],ura:[],aka:0};
+    sc=rScore(h,[],win,cx);
+    if(sc&&rCanWin(sc)&&!sc.yakuman&&!sc.label&&sc.han<=4) break; sc=null;
+  }
+  if(!sc){ h=["2m","3m","4m","5p","6p","7p","3s","4s","5s","6s","7s","8s","5m","5m"]; win="8s"; cx={seatWind:"S",roundWind:"E",dealer:false,tsumo:true,riichi:false,dora:[],ura:[],aka:0}; sc=rScore(h,[],win,cx); }
+  const rest=h.slice(); rest.splice(rest.indexOf(win),1); rest.sort(bySort);
+  const nm=(a,b)=>tf("{} han {} fu",a,b), right=nm(sc.han,sc.fu);
+  const pool=[]; [sc.han-1,sc.han,sc.han+1].forEach(a=>[20,25,30,40,50].forEach(f=>{ if(a>=1&&!(a===sc.han&&f===sc.fu)) pool.push(nm(a,f)); }));
+  const wrong=shuffle(pool).slice(0,3);
+  return {prompt:tf("{}, {}, seat wind South, round wind East, no dora. The last tile is the winning tile. What is this hand worth?",t(cx.tsumo?"Won by tsumo":"Won by ron"),t(cx.riichi?"riichi declared":"no riichi")),
+    tiles:rest.concat(["gap",win]), options:shuffle([right].concat(wrong)), answer:right,
+    why:tf("{} — {} han in all. {} fu: 20 to start, +10 for a closed ron, +2 for tsumo, plus sets, pair and wait, rounded up to 10 (pinfu tsumo is 20).",sc.yaku.map(y=>t(y.n)+" "+y.h).join(", "),sc.han,sc.fu)};
+}
+
+const MODES=[["Name the tile",qName],[RI?"Chi, pon or nothing":"Chow, pung or nothing",qSet],["Can you claim it?",qClaim],["Score the hand",RI?qHan:qFaan]];
 let mode=0, asked=0, right=0, streak=0, best=0, current=null;
 
 (function(){
@@ -566,6 +745,83 @@ deal();
 </script>
 <script>
 "use strict";
+/* ══ riichi scoring tables, from the engine's own rBase / rPay ═════════════ */
+if(RI)(function(){
+  const Y=[ // name, japanese, closed, open, meaning
+    ["Riichi","立直","1","—","A ready closed hand, declared with a 1,000-point stick"],
+    ["Fully concealed self-draw","門前清自摸和","1","—","Win by tsumo on a closed hand"],
+    ["Pinfu","平和","1","—","Four runs, a plain pair and a two-sided wait"],
+    ["All simples","断幺九","1","1","Only 2s through 8s — no terminals or honours"],
+    ["Pure double chow","一盃口","1","—","Two identical runs in one suit"],
+    ["Haku","役牌 白","1","1","A pon of white dragons"],
+    ["Hatsu","役牌 發","1","1","A pon of green dragons"],
+    ["Chun","役牌 中","1","1","A pon of red dragons"],
+    ["Seat wind","自風","1","1","A pon of your own wind"],
+    ["Round wind","場風","1","1","A pon of the round's wind"],
+    ["Ippatsu","一発","1","—","Win within one go-round of declaring riichi, with no call between"],
+    ["After a kong","嶺上開花","1","1","Win on the replacement tile after a kan"],
+    ["Robbing a kong","槍槓","1","1","Win on the tile another player adds to a pon"],
+    ["Last tile from the wall","海底摸月","1","1","Tsumo on the last tile of the wall"],
+    ["Last discard","河底撈魚","1","1","Ron on the last discard of the hand"],
+    ["Double riichi","ダブル立直","2","—","Riichi on your very first discard"],
+    ["Seven pairs","七対子","2","—","Seven different pairs; 25 fu"],
+    ["Mixed triple chow","三色同順","2","1","The same run in all three suits"],
+    ["Pure straight","一気通貫","2","1","1–9 in one suit as three runs"],
+    ["Half outside hand","混全帯幺九","2","1","Every set and the pair holds a terminal or honour, with a run"],
+    ["All pungs","対々和","2","2","Four pons or kans and a pair"],
+    ["Three concealed pungs","三暗刻","2","2","Three pons you drew yourself"],
+    ["Triple pung","三色同刻","2","2","The same pon in all three suits"],
+    ["Three kongs","三槓子","2","2","Three kans"],
+    ["All terminals and honours","混老頭","2","2","Only terminals and honours"],
+    ["Little three dragons","小三元","2","2","Two dragon pons and the third as the pair"],
+    ["Half flush","混一色","3","2","One suit plus honours"],
+    ["Twice pure double chow","二盃口","3","—","Two pairs of identical runs"],
+    ["Fully outside hand","純全帯幺九","3","2","Every set and the pair holds a terminal, with a run"],
+    ["Full flush","清一色","6","5","One suit, no honours"],
+    [null,"Yakuman"],
+    ["Thirteen orphans","国士無双","Y","—","One of each terminal and honour, one doubled"],
+    ["Nine gates","九蓮宝燈","Y","—","1112345678999 in one suit plus any tile of it"],
+    ["Four concealed pungs","四暗刻","Y","—","Four pons you drew yourself"],
+    ["Big three dragons","大三元","Y","Y","All three dragons as pons"],
+    ["Little four winds","小四喜","Y","Y","Three wind pons and the fourth as the pair"],
+    ["Big four winds","大四喜","Y","Y","All four winds as pons"],
+    ["All honours","字一色","Y","Y","Only winds and dragons"],
+    ["All green","緑一色","Y","Y","Only 2s 3s 4s 6s 8s bamboo and hatsu"],
+    ["All terminals","清老頭","Y","Y","Only 1s and 9s"],
+    ["Four kongs","四槓子","Y","Y","Four kans"],
+    ["Blessing of heaven","天和","Y","—","The dealer wins on the first deal"],
+    ["Blessing of earth","地和","Y","—","A non-dealer wins on the first draw"]
+  ];
+  const body=el("yakuBody"), han=v=>v==="Y"?t("Yakuman"):v;
+  Y.forEach(r=>{
+    const tr=document.createElement("tr");
+    if(r[0]===null) tr.innerHTML='<th colspan="4">'+t(r[1])+'</th>';
+    else tr.innerHTML='<td>'+t(r[0])+' <span class="zh">'+r[1]+'</span></td><td class="num">'+han(r[2])+'</td><td class="num">'+han(r[3])+'</td><td>'+t(r[4])+'</td>';
+    body.append(tr);
+  });
+  const cell=(base,tsumo)=>{
+    const nd=rPay(base,false,tsumo), dl=rPay(base,true,tsumo);
+    return tsumo?nd.other+"·"+nd.dealer+'<span class="sm">'+dl.all+' '+t("all")+'</span>':nd.ron+'<span class="sm">'+dl.ron+'</span>';
+  };
+  const fill=(host,tsumo)=>[20,25,30,40,50,60,70].forEach(fu=>{
+    if(!tsumo&&fu===20) return;
+    const tr=document.createElement("tr"); tr.innerHTML='<td class="num">'+tf("{} fu",fu)+'</td>';
+    [1,2,3,4].forEach(h=>{
+      const td=document.createElement("td"); td.className="num";
+      if(h<2&&(fu===20||fu===25)||tsumo&&h===2&&fu===25) td.textContent="—"; else td.innerHTML=cell(rBase(h,fu,0).base,tsumo);
+      tr.append(td);
+    });
+    host.append(tr);
+  });
+  fill(el("ronBody"),false); fill(el("tsumoBody"),true);
+  [["Mangan","5, or 3–4 with big fu",5],["Haneman","6–7",6],["Baiman","8–10",8],["Sanbaiman","11–12",11],["Yakuman","13+ (counted), or any yakuman",13]].forEach(([n,hs,h])=>{
+    const base=h>=13?rBase(0,0,1).base:rBase(h,30,0).base;
+    const tr=document.createElement("tr");
+    tr.innerHTML='<td>'+t(n)+'</td><td>'+t(hs)+'</td><td class="num">'+cell(base,false)+'</td><td class="num">'+cell(base,true)+'</td>';
+    el("limBody").append(tr);
+  });
+})();
+
 /* ══ house rules ═════════════════════════════════════════════════════════ */
 function syncRules(){
   document.querySelectorAll("tr[data-rule]").forEach(tr=>{
@@ -598,11 +854,17 @@ function syncRules(){
 })();
 
 /* ══ builder ═════════════════════════════════════════════════════════════ */
-let BH=[];
+let BH=[],bLast=null;   /* bLast: the tile added last — the winning tile in riichi */
 function bAdd(t){
   if(BH.length>=14||BH.filter(x=>x===t).length>=4)return;
-  BH.push(t);BH.sort(bySort);bRender();
+  BH.push(t);bLast=t;BH.sort(bySort);bRender();
 }
+/* riichi: the context row under the hand */
+const bCtx=()=>{
+  const seat=el("cseat").value;
+  return {seatWind:seat,roundWind:el("crnd").value,dealer:el("cdlr").checked,tsumo:el("cwin").value==="tsumo",
+    riichi:el("crii").checked,dora:el("cdora").value?[el("cdora").value]:[],ura:[],aka:0};
+};
 function randomHand(n){
   for(let tr=0;tr<500;tr++){
     const c=new Array(34).fill(0),h=[];
@@ -627,7 +889,7 @@ function randomHand(n){
     h.sort(bySort);
     if(n===14)return h;
     const j=Math.random()*14|0,cut=h.slice(0,j).concat(h.slice(j+1));
-    if(waitsFor(cut).length)return cut;
+    if((RI?rWaits(cut,[]):waitsFor(cut)).length)return cut;
   }
   return ["1m","2m","3m","4s","5s","6s","7p","8p","9p","2p","2p","2p","C","C"].slice(0,n);
 }
@@ -640,7 +902,7 @@ function bReadout(){
     return d;
   }
   if(BH.length===13){
-    const w=waitsFor(BH);
+    const w=RI?rWaits(BH,[]):waitsFor(BH);
     if(w.length){
       d.innerHTML='<p class="ok" style="margin:0 0 .55rem">'+t("Ready — one tile away. Any of these wins it:")+'</p>';
       const r=document.createElement("div");r.className="row";
@@ -652,6 +914,7 @@ function bReadout(){
     }
     return d;
   }
+  if(RI) return rReadout(d);
   const a=analyze(BH,[],{seatWind:"E",roundWind:"E",concealed:true,selfDraw:false});
   if(!a){
     const n=maxSets(counts(BH),0);
@@ -667,6 +930,28 @@ function bReadout(){
     p.textContent=tf("Below this table's {}-faan minimum — a legal shape, but you could not declare it.",RULES.min);
     d.append(p);
   }
+  return d;
+}
+function rReadout(d){
+  const win=BH.includes(bLast)?bLast:BH[BH.length-1], sc=rScore(BH,[],win,bCtx());
+  if(!sc){
+    d.innerHTML='<p style="margin:0">'+tf("Not a winning hand — {} complete sets, but a win needs exactly four sets plus one pair.",maxSets(counts(BH),0))+'</p>';
+    return d;
+  }
+  const ds=findWin(BH,[]);
+  const hd=document.createElement("p"); hd.style.cssText="margin:0 0 .7rem";
+  if(rCanWin(sc)){hd.className="ok";hd.textContent=t("Winning hand.");}
+  else hd.textContent=t("Complete, but no yaku — it cannot win. Add riichi or change the hand; dora alone doesn't count.");
+  d.append(hd);
+  if(ds.length&&!ds[0].orphans) d.append(meldRow(ds[0].sets,ds[0].pair));
+  const wt=document.createElement("p"); wt.style.cssText="margin:.7rem 0 0;color:var(--ink-2);font-size:.9rem";
+  wt.textContent=tf("Winning tile: {}",info(win).label); d.append(wt);
+  if(!rCanWin(sc)) return d;
+  d.append(rPatList(sc));
+  const p=sc.pay, pay=p.ron!=null?tf("Ron: {} points",p.ron)
+    :p.all!=null?tf("Tsumo: {} from each player",p.all)
+    :tf("Tsumo: {} from the dealer, {} from each other player",p.dealer,p.other);
+  const pp=document.createElement("p"); pp.style.cssText="margin:.7rem 0 0;font-weight:600"; pp.textContent=pay; d.append(pp);
   return d;
 }
 function bRender(){
@@ -698,9 +983,16 @@ function bRender(){
     });
     p.append(d);
   });
-  el("bclear").onclick=()=>{BH=[];bRender()};
-  el("brand").onclick=()=>{BH=randomHand(14);bRender()};
-  el("bwait").onclick=()=>{BH=randomHand(13);bRender()};
+  el("bclear").onclick=()=>{BH=[];bLast=null;bRender()};
+  el("brand").onclick=()=>{BH=randomHand(14);bLast=pick(BH);bRender()};
+  el("bwait").onclick=()=>{BH=randomHand(13);bLast=null;bRender()};
+  const dr=el("cdora"), none=document.createElement("option"); none.value=""; none.textContent=t("none"); dr.append(none);
+  ORDER.forEach(x=>{const o=document.createElement("option");o.value=x;o.textContent=info(x).label;dr.append(o)});
+  ["cwin","crii","cdlr","cseat","crnd","cdora"].forEach(id=>{el(id).onchange=()=>{
+    if(id==="cdlr"&&el("cdlr").checked) el("cseat").value="E";
+    if(id==="cseat") el("cdlr").checked=el("cseat").value==="E";
+    bRender();
+  }});
   bRender();
 })();
 syncRules();

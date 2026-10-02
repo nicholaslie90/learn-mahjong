@@ -34,6 +34,7 @@ button{font:inherit}
 .hud,.bar{flex:none;display:flex;align-items:center;gap:.8rem 1.2rem;
   padding:.55rem max(.8rem,env(safe-area-inset-left)) .55rem max(.8rem,env(safe-area-inset-right));
   background:var(--felt-2);border-bottom:1px solid #ffffff14}
+.hud{flex-wrap:wrap}
 .bar{border-bottom:0;border-top:1px solid #ffffff14;min-height:3.5rem;
   flex-direction:column;align-items:stretch;gap:.5rem;
   padding-bottom:max(.55rem,env(safe-area-inset-bottom))}
@@ -113,6 +114,13 @@ select.lang option{color:#14231F;background:#FBF7EC}
 .chip.on{background:#0d5843e6;border-color:#EFC67766;color:#fff}
 .chip.on .dot{background:#EFC677;animation:pulse 1.15s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 #efc67766}50%{opacity:.55;box-shadow:0 0 0 5px #efc67700}}
+.chip em.pts{color:#EFC677}
+.chip .tag{font-size:.6rem;letter-spacing:.05em;padding:.06rem .4rem;border-radius:99px;background:#B93B2C;color:#fff}
+.chip .tag.ri{background:#EFC677;color:#2A1E06}
+/* red fives: a red glyph and a red pip in the corner, so it reads without colour too */
+.pt.aka .face i{color:#D52B1E}
+.pt.aka .face::before{content:"";position:absolute;top:7%;right:9%;width:17%;height:12%;border-radius:50%;background:#D52B1E}
+.tile.aka{color:#D52B1E}
 .c0{left:.7rem;bottom:.7rem} .c1{right:.7rem;bottom:.7rem}
 .c2{right:.7rem;top:.7rem}   .c3{left:.7rem;top:.7rem}
 
@@ -165,10 +173,11 @@ select.lang option{color:#14231F;background:#FBF7EC}
   <header class="hud">
     <a class="back" href="./">←<span class="wide"> Back to the</span> Guide</a>
     <div class="hudmeta">
-      <span class="wide">Round <b>東</b> East</span>
+      <span class="wide" id="roundct">Round <b>東</b> East</span>
       <span id="wallct">—</span>
       <a class="back" href="./#rules" id="rulelink">house rules</a>
     </div>
+    <span id="variant"></span>
     <span id="lang"></span>
     <button class="hudbtn" id="hintbtn">Hints on</button>
     <button class="hudbtn" id="newbtn">New round</button>
@@ -191,12 +200,22 @@ select.lang option{color:#14231F;background:#FBF7EC}
 <div class="scrim" id="scrim" hidden><div class="panel" id="panel"></div></div>
 
 <script src="mahjong.js"></script>
+<script src="riichi.js"></script>
 <script src="i18n.js"></script>
 <script>
 "use strict";
 el("lang").replaceWith(Object.assign(langPicker(true),{id:"lang",className:"hudbtn lang"}));
+{ /* which game: Hong Kong or Riichi; switching saves and reloads */
+  const v=document.createElement("select");v.id="variant";v.className="hudbtn lang";v.setAttribute("aria-label",t("Game"));
+  [["hk","HK 香港"],["riichi","Riichi 立直"]].forEach(([k,n])=>{
+    const o=document.createElement("option");o.value=k;o.textContent=n;if(k===VARIANT)o.selected=true;v.append(o);
+  });
+  v.onchange=()=>setVariant(v.value);
+  el("variant").replaceWith(v);
+}
 const SEATS=[{w:"E",zh:"東",n:t("You")},{w:"S",zh:"南",n:t("Right")},{w:"W",zh:"西",n:t("Across")},{w:"N",zh:"北",n:t("Left")}];
-const ROUND="E", RANK={win:3,kong:2,pung:2,chow:1};
+let ROUND="E";
+const RANK={win:3,kong:2,pung:2,chow:1};
 const dist=(f,s)=>((s-f)+4)%4;
 const calm=matchMedia("(prefers-reduced-motion: reduce)").matches;
 const DEAL=calm?0:105, THINK=calm?220:620, SETTLE=calm?150:420;
@@ -315,6 +334,7 @@ function positions(g){
       .forEach(([inst,o])=>set(inst,o));
   }
 
+  if(W.r){rTablePos(g,set);return P}
   /* the discard pile, wrapped rows in the middle of the table */
   const rs=g.tw*0.78, rStep=rs*1.06, rowH=rs*1.38*1.06;
   const boxW=Math.max(rStep*6, g.Wd-2*(g.pad+g.th*3.05));
@@ -340,6 +360,7 @@ function seenCounts(){
   const bump=t=>{if(IDX[t]!=null)c[IDX[t]]++};
   ids(full(0)).forEach(bump);
   W.river.forEach(x=>bump(x.t));
+  if(W.r)W.ind.slice(0,W.nd).forEach(x=>bump(x.t));
   for(let s=0;s<4;s++)W.meld[s].forEach(m=>m.tiles.forEach((x,k)=>{
     if(!(s&&m.hid&&(k===0||k===3)))bump(x.t)}));
   return c;
@@ -365,6 +386,7 @@ function tipFor(live){
   const tip=el("tip");
   tip.replaceChildren();
   if(!HINTS||W.over||W.busy){tip.hidden=true;return}
+  if(W.r)return riichiTip(live);
   if(W.phase==="claim"&&W.pend){claimTip(tip);return}
   if(W.phase==="rob"){
     tip.append(words("<b>"+t("Take it.")+"</b> "+t("That is your winning tile.")));
@@ -442,9 +464,12 @@ function paint(){
   const live=!W.over&&!W.busy&&W.phase==="discard"&&W.turn===0;
   const mine=new Set(full(0).map(x=>x.i));
   let recId=-1;
+  const RED5=t("red five");
+  /* Riichi: only the tiles the rules allow you to throw are live */
+  const legal=W.r&&live?new Set(rLegal(0).map(x=>x.i)):null;
   if(live&&HINTS){
-    const a=currentAdvice();
-    if(a){const hit=full(0).find(x=>x.t===a.pick.t);if(hit)recId=hit.i}
+    const a=W.r?riichiAdvice():currentAdvice(), pt=a&&(W.r?a.t:a.pick.t);
+    if(pt){const hit=full(0).find(x=>x.t===pt&&(!legal||legal.has(x.i)));if(hit)recId=hit.i}
   }
   for(let i=0;i<144;i++){
     const node=NODES[i], o=P.get(i);
@@ -458,7 +483,8 @@ function paint(){
     const t=TILE[i];
     const cls="pt"+(o.face?" ink-"+info(t).ink:" down")
       +(o.fresh?" fresh":"")+(o.spot?" spot":"")+(i===recId?" rec":"")
-      +(live&&o.face&&mine.has(i)?" live":"");
+      +(INST[i]&&INST[i].red?" aka":"")
+      +(live&&o.face&&mine.has(i)&&(!legal||legal.has(i))?" live":"");
     if(node.cls!==cls){e.className=cls;node.cls=cls}
     const want=o.face?glyph(t):"";
     if(node.shown!==want){
@@ -469,20 +495,24 @@ function paint(){
       }else node.glyph.textContent=want;
       node.shown=want;
     }
-    const playable=live&&o.face&&mine.has(i);
+    const playable=live&&o.face&&mine.has(i)&&(!legal||legal.has(i));
     e.disabled=!playable;
     e.setAttribute("aria-hidden",playable?"false":"true");
-    e.setAttribute("aria-label",playable?tf("Discard the {}",info(t).label):"");
+    e.setAttribute("aria-label",playable?tf("Discard the {}",info(t).label+(INST[i].red?" ("+RED5+")":"")):"");
     e.onclick=playable?(()=>discard(0,INST[i])):null;
   }
   for(let s=0;s<4;s++){
     const c=el("chip"+s);
     c.className="chip c"+s+((W.turn===s&&!W.over&&!W.busy)?" on":"");
     c.innerHTML='<span class="dot"></span><span class="nm">'+SEATS[s].n
-      +'</span><span class="zh">'+SEATS[s].zh+'</span><em>'+full(s).length+'</em>';
+      +'</span><span class="zh">'+SEATS[s].zh+'</span>'+(W.r?rChip(s):'<em>'+full(s).length+'</em>');
   }
   el("wallct").textContent=tf("{} in the wall",W.wall.length);
-  el("rulelink").textContent=RULES.min?tf("min {} faan",RULES.min):t("no minimum");
+  el("rulelink").textContent=W.r?t("Tenhou rules"):RULES.min?tf("min {} faan",RULES.min):t("no minimum");
+  if(W.r){
+    const rc=el("roundct");rc.className="";
+    rc.innerHTML='<b>'+HONOR[ROUND].zh+(G.k%4+1)+'局</b> '+tf("{} honba · {} riichi sticks",G.honba,G.sticks);
+  }
   bar();
   tipFor(live);
 }
@@ -502,14 +532,19 @@ function bar(){
       const key=op.k+(op.with?op.with.join(""):"");
       if(seen[key])return;
       seen[key]=1;
-      mk(op.k==="win"?t("Win")+" 食糊":op.k==="kong"?"Kong 槓":op.k==="pung"?"Pung 碰"
+      mk(W.r?rCallName(op):op.k==="win"?t("Win")+" 食糊":op.k==="kong"?"Kong 槓":op.k==="pung"?"Pung 碰"
         :"Chow "+info(op.with[0]).zh+info(op.with[1]).zh,
         ()=>settle(p.from,p.tile,p.bots,op));
     });
     mk(t("Pass"),()=>settle(p.from,p.tile,p.bots,null),true);
+  }else if(W.phase==="rob"&&W.pend&&W.r){
+    mk("Ron ロン · "+t("Robbing a kong")+" 槍槓",rRob);
+    mk(t("Pass"),rPassRob,true);
   }else if(W.phase==="rob"&&W.pend){
     mk(t("Rob the kong")+" 搶槓",()=>rob(W.pend.from,W.pend.tile,0));
     mk(t("Pass"),passRob,true);
+  }else if(W.phase==="discard"&&W.turn===0&&W.r){
+    rBar(mk);
   }else if(W.phase==="discard"&&W.turn===0){
     if(W.canWin)mk(t("Win")+" 食糊 · "+tf("{} faan",W.canWin.score.faan),()=>done({seat:0,by:null,a:W.canWin,tile:null}));
     selfKongs(0).forEach(k=>mk("Kong 槓 "+info(k).zh,()=>selfKong(0,k)));
@@ -521,6 +556,9 @@ let TILE=[], INST=[];
 function startRound(){
   clearLater();
   el("scrim").hidden=true;
+  if(VARIANT==="riichi")rSetup();
+  else{
+  SEATS.forEach((x,s)=>{x.w="ESWN"[s];x.zh=HONOR[x.w].zh});ROUND="E";
   const bag=[];
   ALL.forEach(t=>{for(let k=0;k<4;k++)bag.push(t)});
   Object.keys(BONUS).forEach(t=>bag.push(t));
@@ -530,17 +568,19 @@ function startRound(){
   W={wall:INST.slice(),hand:[[],[],[],[]],meld:[[],[],[],[]],flow:[[],[],[],[]],
      river:[],drawn:[null,null,null,null],turn:0,phase:"",pend:null,canWin:null,
      over:false,result:null,busy:true,rep:null};
+  }
   NODES.forEach(n=>{n.shown=null;n.cls="";n.glyph.textContent="";n.el.className="pt";n.el.style.transition="none"});
   paint();
   /* let every tile land on the wall before transitions switch back on */
   requestAnimationFrame(()=>{
     NODES.forEach(n=>{n.el.style.transition=""});
     say(t("Dealing…"));
-    const steps=[];
-    for(let r=0;r<3;r++)for(let s=0;s<4;s++)steps.push(()=>take(s,4));
-    for(let s=0;s<4;s++)steps.push(()=>take(s,1));
+    /* the dealer takes first; in Hong Kong mode that is always you */
+    const steps=[], o=[0,1,2,3].map(k=>(W.turn+k)%4);
+    for(let r=0;r<3;r++)o.forEach(s=>steps.push(()=>take(s,4)));
+    o.forEach(s=>steps.push(()=>take(s,1)));
     steps.push(()=>{for(let s=0;s<4;s++)bloom(s);paint()});
-    run(steps,()=>{W.busy=false;turnOf(0)});
+    run(steps,()=>{W.busy=false;turnOf(W.turn)});
   });
 }
 function run(steps,done){
@@ -585,6 +625,7 @@ function turnOf(s){
 }
 function afterDraw(s,note){
   if(!W.drawn[s])return done(null);
+  if(W.r)return rAfterDraw(s,note);
   const win=look(s,true), can=declarable(win);
   if(can&&s!==0)return done({seat:s,by:null,a:win,tile:null});
   W.canWin=(s===0&&can)?win:null;
@@ -601,6 +642,7 @@ function afterDraw(s,note){
 }
 /* kongs declarable on your own turn: four in hand, or the fourth onto a melded pung */
 function selfKongs(s){
+  if(W.r)return rSelfKongs(s);
   const h=ids(full(s)),c=counts(h);
   return [...new Set(h)].filter(t=>c[IDX[t]]===4
     ||W.meld[s].some(m=>m.type==="pung"&&m.tiles[0].t===t));
@@ -608,6 +650,7 @@ function selfKongs(s){
 /* lay the kong down and take a replacement from the back of the wall */
 function selfKong(s,t,passed){
   if(W.over)return;
+  if(W.r)return rSelfKong(s,t,passed);
   const p=W.meld[s].find(m=>m.type==="pung"&&m.tiles[0].t===t);
   /* adding to a pung exposes that tile: anyone who wins on it may rob the kong */
   if(p&&!passed){
@@ -674,6 +717,7 @@ function botDiscard(s){
 }
 function discard(s,inst){
   if(W.over)return;
+  if(W.r)return rDiscard(s,inst);
   if(W.drawn[s]&&W.drawn[s].i===inst.i)W.drawn[s]=null;
   else{
     W.hand[s].splice(W.hand[s].findIndex(x=>x.i===inst.i),1);
@@ -723,6 +767,7 @@ function botPick(p,o,tile){
 }
 function settle(from,tile,bots,mine){
   if(W.over)return;
+  if(W.r)return rSettle(from,tile,bots,mine);
   W.pend=null;
   const all=bots.concat(mine?[Object.assign({seat:0},mine)]:[]);
   if(!all.length)return turnOf((from+1)%4);
@@ -762,11 +807,12 @@ function meld(s,w,inst){
     W.meld[s].push({type:"pung",tiles:[pull(inst.t),inst,pull(inst.t)].filter(Boolean)});
   }else{
     W.meld[s].push({type:"kong",tiles:[pull(inst.t),pull(inst.t),inst,pull(inst.t)].filter(Boolean)});
-    W.drawn[s]=takeLive(s,true);W.rep=s;
+    if(W.r)rinshan(s);else{W.drawn[s]=takeLive(s,true);W.rep=s}
   }
   sortHand(s);
 }
 function done(r){
+  if(W.r)return rDone(r);
   W.over=true;W.phase="over";W.pend=null;W.canWin=null;W.result=r;
   clearLater();
   say(r?(r.seat===0?t("You win."):tf("<b>{}</b> wins.",SEATS[r.seat].n)):t("Washout — the wall ran out."));
@@ -774,6 +820,7 @@ function done(r){
   later(()=>showPanel(),620);
 }
 function showPanel(){
+  if(W.r)return rPanel();
   const p=el("panel");p.replaceChildren();
   const r=W.result;
   const h=document.createElement("h2");
@@ -811,8 +858,598 @@ function showPanel(){
   again.focus();
 }
 
+/* ── Riichi, to Tenhou's rules ──────────────────────────────────────────────
+   Same table, same tile nodes; these take over from the Hong Kong functions
+   whenever W.r is set (see the one-line hand-offs at the top of each). A game
+   is a hanchan, so points, round, dealer, honba and riichi sticks live in G
+   across hands. Seat 0 is always you; the seat winds turn with the dealer. */
+let G=null;
+const RW=["E","S","W","N"], F4=()=>[false,false,false,false];
+const conceal=s=>W.meld[s].every(m=>m.hid);
+const rMelds=s=>W.meld[s].map(m=>({type:m.type,tiles:ids(m.tiles),open:!m.hid}));
+const others=s=>[1,2,3].map(d=>(s+d)%4);
+const rank=()=>[0,1,2,3].sort((a,b)=>(G.pts[b]-G.pts[a])||(((a-G.first+4)%4)-((b-G.first+4)%4)));
+const DRAWS={exhaust:["Exhaustive draw","流局"],kyuushu:["Nine terminals — abortive draw","九種九牌"],
+  suufon:["Four winds — abortive draw","四風連打"],suucha:["Four riichi — abortive draw","四家立直"],
+  suukan:["Four kongs — abortive draw","四槓散了"],sancha:["Triple ron — abortive draw","三家和"]};
+const rCallName=op=>op.k==="win"?"Ron ロン":op.k==="kong"?"Kan カン":op.k==="pung"?"Pon ポン"
+  :"Chi チー "+info(op.with[0]).zh+info(op.with[1]).zh;
+
+function newGame(){
+  const f=Math.random()*4|0;
+  G={pts:[0,0,0,0].map(()=>R_RULES.start),k:0,first:f,dealer:f,honba:0,sticks:0,over:false,next:null};
+}
+/* 136 tiles, one red five per suit, and a dead wall of 14: five dora
+   indicators, the five ura-dora under them, and four kong replacements */
+function rSetup(){
+  if(!G||G.over)newGame();
+  if(G.next){G.k=G.next.k;G.honba=G.next.honba;G.next=null}
+  const d=G.dealer=(G.first+G.k)%4;
+  ROUND=RW[G.k>>2];
+  SEATS.forEach((x,s)=>{x.w=RW[(s-d+4)%4];x.zh=HONOR[x.w].zh});
+  const bag=[];
+  ALL.forEach(t=>{for(let k=0;k<4;k++)bag.push(t)});
+  const order=shuffle(bag);
+  TILE=order.slice();
+  INST=order.map((t,i)=>({i:i,t:t}));
+  ["5m","5p","5s"].forEach(f=>{INST.find(x=>x.t===f).red=true});
+  const dead=INST.slice(-14);
+  W={wall:INST.slice(0,-14),hand:[[],[],[],[]],meld:[[],[],[],[]],flow:[[],[],[],[]],
+     river:[],drawn:[null,null,null,null],turn:d,phase:"",pend:null,canWin:null,
+     over:false,result:null,busy:true,rep:null,
+     r:true,ind:dead.slice(0,5),ura:dead.slice(5,10),rin:dead.slice(10),nd:1,dpend:0,
+     ri:[0,0,0,0],ipp:F4(),tf:F4(),rf:F4(),disc:[[],[],[],[]],lost:F4(),kui:[null,null,null,null],
+     side:F4(),called:false,kongs:0,kongBy:[0,0,0,0],rmode:false,kyu:false,decl:null,delta:[0,0,0,0],
+     pao:[null,null,null,null]};
+}
+/* the replacement comes off the dead wall, and the live wall gives up its
+   last tile so the dead wall stays at 14 */
+function rinshan(s){W.drawn[s]=W.rin.shift();W.rin.push(W.wall.pop());W.rep=s}
+
+function rctx(s,o,extra){
+  const all=full(s).concat(...W.meld[s].map(m=>m.tiles)).concat(extra?[extra]:[]);
+  return Object.assign({seatWind:SEATS[s].w,roundWind:ROUND,dealer:s===G.dealer,
+    riichi:!!W.ri[s],doubleRiichi:W.ri[s]===2,ippatsu:W.ipp[s],
+    dora:W.ind.slice(0,W.nd).map(x=>x.t),ura:W.ura.slice(0,W.nd).map(x=>x.t),
+    aka:all.filter(x=>x.red).length},o);
+}
+/* furiten: a wait sits in your own discards, or you let a winning tile go by
+   (until your next discard — for good once you are in riichi) */
+function furiten(s){
+  if(W.tf[s]||W.rf[s])return true;
+  const h=ids(W.hand[s]);
+  return h.length%3===1&&rWaits(h,rMelds(s)).some(x=>W.disc[s].indexOf(x)>=0);
+}
+/* the score card if seat s may ron this tile, else null */
+function rRon(s,inst,o){
+  if(furiten(s))return null;
+  const a=rScore(ids(full(s)).concat([inst.t]),rMelds(s),inst.t,
+    rctx(s,Object.assign({tsumo:false,houtei:!W.wall.length&&!(o&&o.chankan)},o),inst));
+  return rCanWin(a)?a:null;
+}
+const canRiichi=s=>!W.ri[s]&&!!W.drawn[s]&&conceal(s)&&G.pts[s]>=1000&&W.wall.length>=4
+  &&rRiichiDiscards(ids(full(s)),rMelds(s)).length>0;
+/* what this seat may throw: after riichi only the drawn tile; while declaring,
+   only tiles that keep the hand ready; after a call, not the swap (kuikae) */
+function rLegal(s){
+  const f=full(s);
+  if(W.ri[s]&&W.drawn[s])return [W.drawn[s]];
+  if(W.rmode&&s===W.turn){const ok=rRiichiDiscards(ids(f),rMelds(s));return f.filter(x=>ok.indexOf(x.t)>=0)}
+  const k=W.kui[s];
+  return k?f.filter(x=>k.indexOf(x.t)<0):f;
+}
+/* kuikae: the called tile, and for a chi the tile at the other end of the run */
+function kuiOf(tile,op){
+  if(op.k!=="chow")return [tile];
+  const n=+tile[0], lo=Math.min(+op.with[0][0],+op.with[1][0]), hi=Math.max(+op.with[0][0],+op.with[1][0]);
+  const out=[tile];
+  if(n<lo&&n+3<=9)out.push((n+3)+tile[1]);
+  if(n>hi&&n-3>=1)out.push((n-3)+tile[1]);
+  return out;
+}
+const yaoKinds=s=>new Set(ids(full(s)).filter(isYao)).size;
+
+function rAfterDraw(s,note){
+  const d=W.drawn[s], first=!W.disc[s].length&&!W.called;
+  const a=rScore(ids(full(s)),rMelds(s),d.t,rctx(s,{tsumo:true,rinshan:W.rep===s,
+    haitei:!W.wall.length&&W.rep!==s,tenhou:first&&s===G.dealer,chiihou:first&&s!==G.dealer}));
+  const can=rCanWin(a)?a:null;
+  W.kyu=first&&yaoKinds(s)>=9;
+  if(s!==0){
+    if(can)return winSelf(s,can);
+    if(W.kyu&&Math.random()<.5)return done({draw:"kyuushu",seat:s});
+  }
+  W.canWin=s===0?can:null;W.phase="discard";W.rmode=false;
+  say(note+(s===0
+    ? (can?t("Tsumo — declare the win, or discard and keep going.")
+      : a?t("Complete, but there is no yaku, so it cannot be declared. Pick a tile to discard.")
+      : W.ri[0]?t("You are in riichi: throw the tile you drew.")
+      : W.kyu?t("Nine different terminals and honours: you may call the hand off, or play on.")
+      : t("Your turn. Pick a tile to discard."))
+    : tf("<b>{}</b> is thinking…",SEATS[s].n)));
+  paint();
+  if(s!==0)later(()=>rBot(s),THINK);
+}
+function winSelf(s,a){
+  done({wins:[{seat:s,by:null,a:a||W.canWin,tile:W.drawn[s].t,inst:W.drawn[s]}]});
+}
+function rBar(mk){
+  if(W.canWin)mk("Tsumo ツモ",()=>winSelf(0));
+  if(W.rmode)mk(t("Cancel riichi"),()=>{W.rmode=false;paint()},true);
+  else if(canRiichi(0))mk("Riichi 立直",()=>{
+    W.rmode=true;say(t("Riichi: pick the discard — only tiles that keep you ready are live."));paint()});
+  rSelfKongs(0).forEach(k=>mk("Kan カン "+info(k).zh,()=>selfKong(0,k)));
+  if(W.kyu)mk(t("Call it off")+" 九種九牌",()=>done({draw:"kyuushu",seat:0}),true);
+}
+function rChip(s){
+  return '<em class="pts">'+G.pts[s]+'</em>'
+    +(W.ri[s]?'<span class="tag ri">'+t("Riichi")+'</span>':'')
+    +(s===0&&!W.over&&furiten(0)?'<span class="tag">'+t("Furiten")+'</span>':'');
+}
+
+/* kongs on your own turn: never on the last tile, never a fifth; in riichi
+   only a closed kong of the drawn tile that leaves the waits as they were */
+function rSelfKongs(s){
+  if(!W.drawn[s]||!W.wall.length||W.kongs>=4)return [];
+  const h=ids(full(s)),c=counts(h);
+  let ks=[...new Set(h)].filter(t=>c[IDX[t]]===4||W.meld[s].some(m=>m.type==="pung"&&m.tiles[0].t===t));
+  if(W.ri[s]){
+    const d=W.drawn[s].t, m=rMelds(s), was=rWaits(ids(W.hand[s]),m).join();
+    ks=ks.filter(t=>t===d&&c[IDX[t]]===4&&rWaits(ids(W.hand[s]).filter(x=>x!==t),
+      m.concat([{type:"kong",tiles:[t,t,t,t],open:false}])).join()===was);
+  }
+  return ks;
+}
+function rSelfKong(s,t,passed){
+  const p=W.meld[s].find(m=>m.type==="pung"&&m.tiles[0].t===t);
+  if(!passed){
+    /* an added kong can be robbed by anyone it completes; a closed one only by thirteen orphans */
+    const inst=full(s).find(x=>x.t===t);
+    const r=others(s).filter(o=>{const a=rRon(o,inst,{chankan:true});return a&&(p||a.form==="kokushi")});
+    if(r.length){
+      W.pend={from:s,tile:t,inst:inst,r:r};
+      if(r.indexOf(0)<0)return rRob();
+      W.phase="rob";
+      say(tf("<b>{}</b> declares a Kong on the {} — it is your winning tile.",SEATS[s].n,info(t).label));
+      paint();return;
+    }
+  }
+  if(W.drawn[s]){W.hand[s].push(W.drawn[s]);W.drawn[s]=null}
+  const four=W.hand[s].filter(x=>x.t===t);
+  W.hand[s]=W.hand[s].filter(x=>x.t!==t);
+  /* kan dora: a closed kong turns its indicator now, an added one after the next discard */
+  if(p){p.type="kong";p.tiles.push(...four);W.nd=Math.min(5,W.nd+W.dpend);W.dpend=1}
+  else{W.meld[s].push({type:"kong",hid:true,tiles:four});W.nd=Math.min(5,W.nd+W.dpend+1);W.dpend=0}
+  W.kongs++;W.kongBy[s]++;W.called=true;W.ipp=F4();
+  sortHand(s);
+  rinshan(s);
+  afterDraw(s,(s===0?tf("You declare a Kong on the {}.",info(t).label)
+    :tf("<b>{}</b> declares a Kong on the {}.",SEATS[s].n,info(t).label))+" ");
+}
+function rRob(){
+  const p=W.pend;
+  if(p.r.length===3)return done({draw:"sancha"});
+  done({wins:p.r.map(o=>({seat:o,by:p.from,a:rRon(o,p.inst,{chankan:true}),tile:p.tile,inst:p.inst}))});
+}
+function rPassRob(){
+  const p=W.pend;
+  W.tf[0]=true;if(W.ri[0])W.rf[0]=true;
+  p.r=p.r.filter(o=>o!==0);
+  if(p.r.length)return rRob();
+  W.pend=null;W.phase="discard";
+  rSelfKong(p.from,p.tile,true);
+}
+
+function rDiscard(s,inst){
+  const decl=W.rmode&&!W.ri[s], first=!W.disc[s].length&&!W.called;
+  W.rmode=false;W.kyu=false;
+  if(W.drawn[s]&&W.drawn[s].i===inst.i)W.drawn[s]=null;
+  else{
+    W.hand[s].splice(W.hand[s].findIndex(x=>x.i===inst.i),1);
+    if(W.drawn[s]){W.hand[s].push(W.drawn[s]);W.drawn[s]=null;sortHand(s)}
+  }
+  /* the riichi tile lies sideways; if it is called away, the next one does */
+  inst.by=s;
+  if(decl||W.side[s]){inst.side=true;W.side[s]=false}
+  W.river.push(inst);W.disc[s].push(inst.t);
+  W.tf[s]=false;W.kui[s]=null;
+  if(W.ri[s])W.ipp[s]=false;
+  if(decl){W.ri[s]=first?2:1;W.ipp[s]=true;W.decl=s}
+  W.nd=Math.min(5,W.nd+W.dpend);W.dpend=0;
+  W.canWin=null;W.phase="";W.rep=null;
+  const bots=[];
+  for(let p=1;p<4;p++){
+    if(p===s)continue;
+    const c=rBotCall(p,rOptions(p,s,inst),inst);
+    if(c)bots.push(Object.assign({seat:p},c));
+  }
+  const mine=s!==0?rOptions(0,s,inst):[];
+  const lbl=info(inst.t).label+(inst.red?" ("+t("red five")+")":"");
+  const head=decl?(s===0?tf("You declare riichi 立直 with the {}.",lbl):tf("<b>{}</b> declares riichi 立直 with the {}.",SEATS[s].n,lbl))
+    :s===0?tf("You discard the {}.",lbl):tf("<b>{}</b> discards the {}.",SEATS[s].n,lbl);
+  /* say why a tile that completes your hand is not on offer */
+  let miss="";
+  if(s!==0&&!mine.some(o=>o.k==="win")&&rShape(ids(full(0)).concat([inst.t]),rMelds(0)))
+    miss=" "+(furiten(0)?t("It completes your hand, but you are furiten — no ron."):t("It completes your hand, but there is no yaku — no ron."));
+  if(mine.length){
+    W.pend={from:s,tile:inst.t,inst:inst,bots:bots,opts:mine};W.phase="claim";
+    say(head+miss+" "+t("Call it, or pass."));
+    paint();return;
+  }
+  say(head+miss);
+  paint();
+  later(()=>settle(s,inst.t,bots,null),miss?THINK*2:SETTLE);
+}
+/* ron always; nothing else on the last discard or once in riichi */
+function rOptions(p,from,inst){
+  const o=[],tile=inst.t;
+  if(rRon(p,inst))o.push({k:"win"});
+  if(!W.wall.length||W.ri[p])return o;
+  const h=ids(full(p)),c=counts(h);
+  /* a call must leave something you are allowed to throw */
+  const free=(use,ban)=>{const r=h.slice();use.forEach(x=>r.splice(r.indexOf(x),1));return r.some(x=>ban.indexOf(x)<0)};
+  if(c[IDX[tile]]>=3&&W.kongs<4)o.push({k:"kong"});
+  if(c[IDX[tile]]>=2&&free([tile,tile],[tile]))o.push({k:"pung"});
+  if(p===(from+1)%4&&!HONOR[tile]){
+    const i=IDX[tile],n=i%9;
+    [[-2,-1],[-1,1],[1,2]].forEach(d=>{
+      const a=n+d[0],b=n+d[1];
+      if(a<0||a>8||b<0||b>8||!c[i+d[0]]||!c[i+d[1]])return;
+      const op={k:"chow",with:[ORDER[i+d[0]],ORDER[i+d[1]]]};
+      if(free(op.with,kuiOf(tile,op)))o.push(op);
+    });
+  }
+  return o;
+}
+function rSettle(from,tile,bots,mine){
+  W.pend=null;
+  const inst=W.river[W.river.length-1];
+  const all=bots.concat(mine?[Object.assign({seat:0},mine)]:[]);
+  const wins=all.filter(x=>x.k==="win").sort((a,b)=>dist(from,a.seat)-dist(from,b.seat));
+  if(wins.length===3)return done({draw:"sancha"});
+  if(wins.length)return done({wins:wins.map(w=>({seat:w.seat,by:from,a:rRon(w.seat,inst),tile:tile,inst:inst}))});
+  /* nobody took it: whoever it would have completed is furiten for now */
+  others(from).forEach(o=>{
+    if(rShape(ids(full(o)).concat([tile]),rMelds(o))){W.tf[o]=true;if(W.ri[o])W.rf[o]=true}
+  });
+  if(W.decl===from){
+    W.decl=null;G.pts[from]-=1000;W.delta[from]-=1000;G.sticks++;
+    if(W.ri.every(Boolean))return done({draw:"suucha"});
+  }
+  if(!W.called&&W.river.length===4&&RW.indexOf(tile)>=0&&W.river.every(x=>x.t===tile))return done({draw:"suufon"});
+  if(W.kongs===4&&W.kongBy.filter(Boolean).length>1)return done({draw:"suukan"});
+  const calls=all.filter(x=>x.k!=="win");
+  if(!calls.length)return turnOf((from+1)%4);
+  calls.sort((a,b)=>(RANK[b.k]-RANK[a.k])||(dist(from,a.seat)-dist(from,b.seat)));
+  const w=calls[0];
+  W.river.pop();W.lost[from]=true;
+  if(inst.side)W.side[from]=true;
+  W.called=true;W.ipp=F4();
+  meld(w.seat,w,inst);
+  /* pao: the call that makes big three dragons or big four winds certain
+     leaves its discarder liable for that yakuman */
+  const grp=[DRAGONS,RW].find(g=>g.indexOf(tile)>=0);
+  if(grp&&W.meld[w.seat].filter(m=>m.type!=="chow"&&grp.indexOf(m.tiles[0].t)>=0).length===grp.length)
+    W.pao[w.seat]=from;
+  W.turn=w.seat;
+  const CALL={kong:"Kan",pung:"Pon",chow:"Chi"};
+  const note=mine&&w.seat!==0
+    ? tf("Your {} is outranked — <b>{}</b> calls {}.",CALL[mine.k],SEATS[w.seat].n,CALL[w.k])
+    : (w.seat===0?tf("You call {} on the {}.",CALL[w.k],info(tile).label)
+                 :tf("<b>{}</b> calls {} on the {}.",SEATS[w.seat].n,CALL[w.k],info(tile).label));
+  if(w.k==="kong"){W.kongs++;W.kongBy[w.seat]++;W.dpend++;return afterDraw(w.seat,note+" ")}
+  W.kui[w.seat]=kuiOf(tile,w);
+  W.phase="discard";W.canWin=null;
+  say(note+(w.seat===0?" "+t("Now discard."):""));
+  paint();
+  if(w.seat!==0)later(()=>rBot(w.seat),THINK);
+}
+
+/* ── Riichi bots ── */
+function rBot(s){
+  if(W.over)return;
+  const ks=rSelfKongs(s);
+  if(ks.length&&Math.random()<.6)return selfKong(s,ks[0]);
+  if(W.ri[s])return discard(s,W.drawn[s]);
+  const c=rBotChoice(s);
+  W.rmode=!!c.riichi;
+  discard(s,c.inst);
+}
+function rBotChoice(s){
+  const f=full(s), h=ids(f), legal=rLegal(s), m=rMelds(s), ex=m.length, c=counts(h);
+  const low=list=>{let b=null,bv=Infinity;shuffle(list).forEach(x=>{const v=tileValue(s,x.t,c);if(v<bv){bv=v;b=x}});return b};
+  /* someone is in riichi and we are nowhere near: throw what they already threw */
+  const thr=others(s).filter(o=>W.ri[o]);
+  if(thr.length&&rShanten(c,ex)>=2){
+    const safe=legal.filter(x=>thr.every(o=>W.disc[o].indexOf(x.t)>=0));
+    if(safe.length)return {inst:low(safe)};
+  }
+  if(canRiichi(s)&&Math.random()<.85){
+    const ok=rRiichiDiscards(h,m);
+    let b=null,bw=-1;
+    legal.filter(x=>ok.indexOf(x.t)>=0).forEach(x=>{
+      const r=h.slice();r.splice(r.indexOf(x.t),1);
+      const w=rWaits(r,m).length;if(w>bw){bw=w;b=x}
+    });
+    if(b)return {inst:b,riichi:true};
+  }
+  /* fewest swaps from ready, then the least useful tile */
+  let best=Infinity,cand=[];
+  const sh={};
+  legal.forEach(x=>{
+    if(sh[x.t]==null){const r=h.slice();r.splice(r.indexOf(x.t),1);sh[x.t]=rShanten(counts(r),ex)}
+    if(sh[x.t]<best){best=sh[x.t];cand=[x]}else if(sh[x.t]===best)cand.push(x);
+  });
+  return {inst:low(cand)};
+}
+/* a call has to leave a yaku in reach: a value pung, all simples, or one suit */
+function yakuOK(p,melds,rest){
+  const val=t=>DRAGONS.indexOf(t)>=0||t===SEATS[p].w||t===ROUND;
+  if(melds.some(m=>m.type!=="chow"&&val(m.tiles[0])))return true;
+  const mt=melds.reduce((a,m)=>a.concat(m.tiles),[]);
+  if(!mt.some(isYao)&&rest.filter(isYao).length<=1)return true;
+  const suits=new Set(mt.filter(t=>!isHon(t)).map(t=>t[1]));
+  if(suits.size!==1)return false;
+  const su=[...suits][0];
+  return rest.filter(t=>!isHon(t)&&t[1]!==su).length<=2;
+}
+function rBotCall(p,o,inst){
+  const w=o.find(x=>x.k==="win");if(w)return w;
+  if(!o.length)return null;
+  const tile=inst.t, h=ids(full(p)), ex=W.meld[p].length, now=rShanten(counts(h),ex);
+  const threat=others(p).some(q=>W.ri[q]);
+  let best=null;
+  o.forEach(op=>{
+    const use=op.k==="chow"?op.with:op.k==="pung"?[tile,tile]:[tile,tile,tile];
+    const rest=h.slice();use.forEach(x=>rest.splice(rest.indexOf(x),1));
+    if(!yakuOK(p,rMelds(p).concat([{type:op.k,tiles:use.concat([tile])}]),rest))return;
+    let after=99;
+    if(op.k==="kong")after=rShanten(counts(rest),ex+1);
+    else{
+      const ban=kuiOf(tile,op);
+      [...new Set(rest)].forEach(d=>{
+        if(ban.indexOf(d)>=0)return;
+        const r2=rest.slice();r2.splice(r2.indexOf(d),1);
+        after=Math.min(after,rShanten(counts(r2),ex+1));
+      });
+    }
+    if((after<now||(op.k==="kong"&&after<=now))&&(!best||after<best.sh))best={op:op,sh:after};
+  });
+  if(!best||(threat&&best.sh>0))return null;
+  return Math.random()<(best.op.k==="kong"?.5:.75)?best.op:null;
+}
+
+/* ── the end of a hand, and of the game ── */
+function rDone(r){
+  r=r||{draw:"exhaust"};
+  W.over=true;W.phase="over";W.pend=null;W.canWin=null;W.rmode=false;W.result=r;
+  clearLater();
+  const pd=[0,0,0,0], pay=(a,b,n)=>{pd[a]-=n;pd[b]+=n};
+  const tsumoPay=(s,p,extra)=>others(s).forEach(o=>pay(o,s,(p.all||(o===G.dealer?p.dealer:p.other))+extra));
+  let ren=true, won=false;
+  if(r.wins){
+    /* double ron: each is paid; honba and the sticks go to the nearest winner */
+    won=true;ren=r.wins.some(w=>w.seat===G.dealer);
+    r.wins.forEach((w,k)=>{
+      const hb=k?0:G.honba, pz=W.pao[w.seat];
+      /* pao: the liable seat pays one yakuman in full on tsumo, half of it
+         on ron (plus the honba); any further yakuman are paid as usual */
+      if(pz!=null&&w.a.yakuman&&w.a.yaku.some(y=>y.n==="Big three dragons"||y.n==="Big four winds")){
+        const one=rPay(8000,w.seat===G.dealer,false).ron, rest=w.a.yakuman-1;
+        const restPay=rPay(8000*rest,w.seat===G.dealer,w.by==null);
+        if(w.by==null){pay(pz,w.seat,one+300*hb);if(rest)tsumoPay(w.seat,restPay,0)}
+        else{pay(pz,w.seat,one/2+300*hb);pay(w.by,w.seat,one/2+(rest?restPay.ron:0))}
+        return;
+      }
+      if(w.by==null)tsumoPay(w.seat,w.a.pay,100*hb);else pay(w.by,w.seat,w.a.pay.ron+300*hb);
+    });
+    pd[r.wins[0].seat]+=G.sticks*1000;G.sticks=0;
+  }else if(r.draw==="exhaust"){
+    r.ten=[0,1,2,3].map(s=>rWaits(ids(full(s)),rMelds(s)).length>0);
+    /* nagashi mangan: every discard a terminal or honour, none of them called */
+    r.nagashi=[0,1,2,3].filter(s=>W.disc[s].length&&!W.lost[s]&&W.disc[s].every(isYao));
+    const n=r.ten.filter(Boolean).length;
+    if(r.nagashi.length)r.nagashi.forEach(s=>tsumoPay(s,rPay(2000,s===G.dealer,true),0));
+    else if(n%4)r.ten.forEach((x,s)=>{pd[s]+=x?3000/n:-3000/(4-n)});
+    ren=r.ten[G.dealer];
+  }
+  pd.forEach((x,s)=>{G.pts[s]+=x;W.delta[s]+=x});
+  /* a hanchan: South 4 is the last hand, unless nobody has reached 30000 —
+     then West, until someone does. The dealer topping the table in the last
+     hand ends it there (agari-yame). Anyone below zero ends it at once. */
+  const k=G.k, next=ren?k:k+1, top=rank()[0];
+  G.next={k:next,honba:(ren||!won)?G.honba+1:0};
+  if(G.pts.some(x=>x<0)||(ren&&(won||r.draw==="exhaust")&&k>=7&&top===G.dealer&&G.pts[top]>=R_RULES.target)
+    ||(next>=8&&Math.max(...G.pts)>=R_RULES.target)||next>=12){
+    G.over=true;G.pts[top]+=G.sticks*1000;G.sticks=0;   /* leftover sticks go to first place */
+  }
+  say(r.wins?r.wins.map(w=>w.seat===0?t("You win"):tf("<b>{}</b> wins",SEATS[w.seat].n)).join(" · ")
+      +(r.wins[0].by==null?" — Tsumo ツモ.":" — Ron ロン."):t(DRAWS[r.draw][0])+".");
+  paint();
+  later(()=>showPanel(),620);
+}
+function rTile(x){const e=tileEl(x.t);if(x.red)e.className+=" aka";return e}
+function rPanel(){
+  const p=el("panel");p.replaceChildren();
+  const r=W.result, add=(tag,html)=>{const e=document.createElement(tag);e.innerHTML=html;p.append(e);return e};
+  const gap=row=>{const g=document.createElement("span");g.className="gap";row.append(g)};
+  const who=s=>s===0?t("You"):SEATS[s].n;
+  add("h2",r.wins
+    ? r.wins.map(w=>w.seat===0?t("You win"):tf("{} wins",SEATS[w.seat].n)).join(" · ")
+      +' <span class="zh">'+(r.wins[0].by==null?"ツモ":"ロン")+'</span>'
+    : t(DRAWS[r.draw][0])+' <span class="zh">'+DRAWS[r.draw][1]+'</span>');
+  (r.wins||[]).forEach(w=>{
+    const row=document.createElement("div");row.className="row";
+    W.meld[w.seat].forEach(m=>{m.tiles.forEach(x=>row.append(rTile(x)));gap(row)});
+    full(w.seat).filter(x=>x!==w.inst).sort((a,b)=>bySort(a.t,b.t)).forEach(x=>row.append(rTile(x)));
+    gap(row);row.append(rTile(w.inst));
+    p.append(row,rPatList(w.a));
+    add("p",w.by==null?tf("{} drew it — every other player pays.",who(w.seat))
+      :tf("{} threw the winning tile and pays.",who(w.by)));
+  });
+  if(r.draw==="exhaust"){
+    const ready=[0,1,2,3].filter(s=>r.ten[s]).map(who);
+    add("p",r.nagashi.length?tf("Nagashi mangan 流し満貫 for {}: every discard a terminal or honour, none called.",r.nagashi.map(who).join(", "))
+      :ready.length===4?t("Everyone was ready (tenpai 聴牌), so nobody pays.")
+      :ready.length?tf("Ready (tenpai 聴牌): {}. The rest pay 3000 between them.",ready.join(", "))
+      :t("Nobody was ready, so nobody pays."));
+  }else if(r.draw)add("p",t("The hand is called off. Nobody pays; the dealer deals again."));
+  /* the dead wall's indicators, and the ura-dora under them if a riichi won */
+  const dr=document.createElement("div");dr.className="row";
+  dr.append(words(t("Dora indicators")+"&nbsp;"));
+  W.ind.slice(0,W.nd).forEach(x=>dr.append(rTile(x)));
+  if(r.wins&&r.wins.some(w=>W.ri[w.seat])){
+    gap(dr);dr.append(words(t("Ura-dora")+"&nbsp;"));W.ura.slice(0,W.nd).forEach(x=>dr.append(rTile(x)));
+  }
+  p.append(dr);
+  const ul=document.createElement("ul");ul.className="pats";
+  (G.over?rank():[0,1,2,3]).forEach((s,i)=>{
+    const d=W.delta[s], li=document.createElement("li");
+    li.innerHTML='<span>'+(G.over?(i+1)+". ":"")+who(s)+' <span class="zh">'+SEATS[s].zh+'</span></span><b>'
+      +(d?(d>0?"+":"")+d+" → ":"")+G.pts[s]+'</b>';
+    ul.append(li);
+  });
+  if(G.over)add("p","<b>"+t("Game over — final standings")+"</b>");
+  p.append(ul);
+  const acts=document.createElement("div");acts.className="acts";
+  const again=document.createElement("button");
+  again.type="button";again.textContent=t(G.over?"New game":"Next hand");
+  again.onclick=()=>{if(G.over)G=null;startRound()};
+  const backBtn=document.createElement("button");
+  backBtn.type="button";backBtn.className="sec";backBtn.textContent=t("Back to the guide");
+  backBtn.onclick=()=>{location.href="./"};
+  acts.append(again,backBtn);p.append(acts);
+  el("scrim").hidden=false;
+  again.focus();
+}
+
+/* ── Riichi layout: a river in front of each player, six to a row (the
+   third row runs on), and the dora indicators in the middle ── */
+function rTablePos(g,set){
+  const cx=g.ox+g.Wd/2, cy=g.oy+g.H/2, tw=g.tw;
+  const vh=(g.H-6.98*tw)/2, hh=(g.Wd-6.98*tw)/2;
+  const rs=Math.max(tw*.4,Math.min(tw*.85,(vh-tw*.8)/4.4,hh/8));
+  const step=rs*1.06, rowH=rs*1.38*1.06, sc=rs/tw;
+  const gaps=[Math.max(tw*.8,Math.min(vh-4.4*rs,3.6*rs)),3.6*rs];
+  const hide={x:cx,y:cy,rot:0,sc:sc,face:false,z:4,op:0};
+  W.wall.concat(W.rin).forEach(x=>set(x,hide));
+  const ura=W.over&&W.result&&W.result.wins&&W.result.wins.some(w=>W.ri[w.seat]);
+  W.ind.forEach((x,k)=>set(x,{x:cx+(k-2)*step,y:cy-(ura?rowH/2:0),rot:0,sc:sc,face:k<W.nd,z:6,op:1}));
+  W.ura.forEach((x,k)=>set(x,ura&&k<W.nd?{x:cx+(k-2)*step,y:cy+rowH/2,rot:0,sc:sc,face:true,z:6,op:1}:hide));
+  const last=W.river[W.river.length-1];
+  for(let s=0;s<4;s++){
+    const out=[-INW[s][0],-INW[s][1]], ax=AXIS[s], gap=gaps[s%2];
+    let row=0,n=0,cur=-3*step;
+    W.river.filter(x=>x.by===s).forEach(x=>{
+      if(row<2&&n===6){row++;n=0;cur=-3*step}
+      const w=x.side?rowH:step, along=cur+w/2;
+      cur+=w;n++;
+      const off=gap+rowH*(row+.5);
+      let px=cx+out[0]*off, py=cy+out[1]*off;
+      if(ax.a==="x")px+=along*ax.s;else py+=along*ax.s;
+      set(x,{x:px,y:py,rot:ROT[s]+(x.side?90:0),sc:sc,face:true,z:10+row,op:1,spot:x===last&&!W.over});
+    });
+  }
+}
+
+/* ── Riichi coach ────────────────────────────────────────────────────────
+   riichiAdvice() is the discard the table highlights for you (null if none):
+   fewest swaps from ready with seven pairs counted, live tiles to break ties,
+   and never a furiten wait while another ready discard exists. riichiTip(live)
+   fills the hint line under the bar. */
+let rAdvKey=null, rAdv=null;
+function riichiAdvice(){
+  const legal=rLegal(0), h=ids(full(0)), m=rMelds(0);
+  const key=h.join("")+"|"+ids(legal).join("")+"|"+m.length+"|"+W.river.length+"|"+W.rmode+"|"+W.tf[0]+W.rf[0];
+  if(key===rAdvKey)return rAdv;
+  rAdvKey=key;
+  const ctx={seatWind:SEATS[0].w,roundWind:ROUND}, seen=seenCounts();
+  const a=legal.length?rAdvise(h,m,seen,ctx,ids(legal)):null;
+  if(!a)return rAdv=null;
+  const bad=r=>r.sh===0&&r.accept.length&&rFuriWaits(r.rest,m,W.disc[0].concat([r.t])).length>0;
+  let p=a.front.find(r=>!bad(r))||a.pick;
+  /* a ready hand: name the riichi discard if the coach would declare */
+  let ra=null;
+  if(a.sh===0&&canRiichi(0)&&!W.rmode){
+    ra=rRiichiAdvice(h,m,seen,ctx,W.disc[0]);
+    if(ra&&ra.go&&ids(legal).indexOf(ra.t)>=0)p=a.front.find(r=>r.t===ra.t)||p;
+  }
+  return rAdv={t:p.t,sh:a.sh,rest:p.rest,waits:a.sh===0?rWaits(p.rest,m):[],live:p.live,accept:p.accept,ra:ra};
+}
+function riichiTip(live){
+  const tip=el("tip"), p=W.pend;
+  if(p&&(W.phase==="rob"||(W.phase==="claim"&&p.opts.some(o=>o.k==="win")))){
+    tip.append(words("<b>"+t("Take it.")+"</b> "+t("That is your winning tile.")));
+    tip.hidden=false;return;
+  }
+  if(W.phase==="claim"&&p){riichiClaimTip(tip);return}
+  const a=live&&riichiAdvice();
+  if(!a){tip.hidden=true;return}
+  const ra=a.ra, m=rMelds(0);
+  tip.append(words("<b>"+t(ra&&ra.go?"Riichi 立直 — discard":"Discard")+"</b>"),gl(a.t),words("<b>"+info(a.t).label+"</b> — "
+    +(a.sh===0?t("That leaves you ready."):a.sh===1?t("That leaves you one tile from ready."):tf("That leaves you {} tiles from ready.",a.sh))));
+  if(a.waits.length){
+    tip.append(dot(),words(tf("<b>{}</b> live tiles win it, waiting on",a.live)));
+    a.waits.forEach(x=>tip.append(gl(x)));
+  }else if(a.accept.length&&a.sh<=2)tip.append(dot(),words(tf("<b>{}</b> live tiles improve it.",a.live)));
+  if(ra){
+    tip.append(dot(),words(ra.go
+      ? t(ra.yaku?"Declare riichi — a wide wait is worth the extra han and the ura-dora.":"Declare riichi — it is the yaku that lets you win this.")
+      : t("Stay concealed — you already have a yaku and the wait is thin, so riichi would only lock you in.")));
+  }
+  if(a.sh===0){
+    /* furiten: the wait this discard would leave sits in your own river */
+    const fur=a.waits.filter(x=>x===a.t||W.disc[0].indexOf(x)>=0);
+    if(fur.length){
+      tip.append(dot(),words("<b>"+t("Furiten")+"</b> — "+t("you threw it yourself, so you can only win by tsumo:")));
+      fur.forEach(x=>tip.append(gl(x)));
+    }else if(W.tf[0]||W.rf[0])
+      tip.append(dot(),words("<b>"+t("Furiten")+"</b> — "+t("you passed a winning tile, so you can only win by tsumo.")));
+    /* ready but no yaku on a ron: riichi (concealed) or tsumo is the only way */
+    if(!W.ri[0]&&a.waits.length){
+      const none=rYakuWaits(a.rest,m,rctx(0,{})).filter(y=>!y.ron);
+      if(none.length){
+        tip.append(dot(),words("<b>"+t("No yaku")+"</b> — "+t(conceal(0)
+          ?"a ron on these has none; only riichi or a tsumo would make it legal:"
+          :"a ron on these has none, and an open hand cannot win by tsumo-only either:")));
+        none.forEach(y=>tip.append(gl(y.t)));
+      }
+    }
+  }
+  /* someone declared riichi: what you can throw without paying for it */
+  const rs=[1,2,3].filter(q=>W.ri[q]);
+  if(rs.length&&!W.ri[0]){
+    const safe=rSafe(ids(full(0)),rs.map(q=>W.disc[q]));
+    tip.append(dot(),words(safe.length?t("<b>Safe</b> against the riichi (現物):"):"<b>"+t("No safe tile")+"</b> — "+t("nothing you hold has been thrown by the riichi player.")));
+    safe.slice(0,6).forEach(x=>tip.append(gl(x)));
+  }
+  tip.hidden=false;
+}
+/* calling costs riichi, pinfu, menzen tsumo and iipeikou — keep a yaku in reach, or pass */
+function riichiClaimTip(tip){
+  const p=W.pend, hand=ids(full(0)), m=rMelds(0), now=rShanten(counts(hand),m.length);
+  let best=null;
+  p.opts.forEach(op=>{
+    const use=op.k==="chow"?op.with:op.k==="pung"?[p.tile,p.tile]:[p.tile,p.tile,p.tile];
+    const c=rCallShanten(hand,m,p.tile,op.k,use);
+    const yk=yakuOK(0,m.concat([{type:op.k,tiles:use.concat([p.tile])}]),c.rest);
+    if(!best||c.sh<best.sh||(c.sh===best.sh&&yk&&!best.yk))best={op:op,sh:c.sh,yk:yk};
+  });
+  if(!best){tip.hidden=true;return}
+  const name=best.op.k==="chow"?"Chi チー":best.op.k==="kong"?"Kan カン":"Pon ポン";
+  const lost=t("It does cost you riichi, pinfu, menzen tsumo and iipeikou.");
+  if(best.sh<now&&best.yk)
+    tip.append(words("<b>"+t("Worth calling.")+"</b> "+tf("{} moves you from {} away to {} away, and a yaku is still in reach (yakuhai, tanyao, one suit or toitoi).",name,now,best.sh)+" "+lost));
+  else if(best.sh<now)
+    tip.append(words("<b>"+t("Better to pass.")+"</b> "+tf("{} gets you from {} away to {}, but an open hand like that would have no yaku — it could never win.",name,now,best.sh)));
+  else
+    tip.append(words("<b>"+t("Better to pass.")+"</b> "+tf("Calling would not get you any closer than {} away, and it exposes a set and gives up riichi, pinfu and menzen tsumo.",now)));
+  tip.hidden=false;
+}
+
 makeNodes();
-el("newbtn").onclick=startRound;
+el("newbtn").onclick=()=>{G=null;startRound()};
+if(VARIANT==="riichi")el("newbtn").textContent="New game";
 const hintBtn=el("hintbtn");
 function drawHintBtn(){hintBtn.textContent=t(HINTS?"Hints on":"Hints off");hintBtn.setAttribute("aria-pressed",HINTS)}
 hintBtn.onclick=()=>{
