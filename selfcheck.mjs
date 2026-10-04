@@ -509,6 +509,53 @@ ok(kuiOf("4m", {k:"chow", with:["3m","5m"]}).join() === "4m", "a kanchan chi onl
 }
 VARIANT = "hk";
 
+/* ── the score sheet ─────────────────────────────────────────────────── */
+{
+const eq = (a, b, m) => ok(JSON.stringify(a) === JSON.stringify(b), m + ": " + JSON.stringify(a));
+// hong kong: discarder pays the units alone; self-draw, all three pay
+eq(settleHand("hk", {kind:"ron", w:1, from:3, f:3}, 0), [0, 8, 0, -8], "hk ron 3 faan");
+eq(settleHand("hk", {kind:"tsumo", w:2, f:5}, 0), [-24, -24, 72, -24], "hk tsumo 5 faan");
+eq(settleHand("hk", {kind:"draw"}, 0), [0, 0, 0, 0], "hk draw");
+// riichi: 3 han 30 fu non-dealer ron 3900, two honba, own riichi stick back plus one in the pot
+eq(settleHand("riichi", {kind:"ron", w:1, from:2, f:3, fu:30, dealer:0, honba:2, riichi:[1]}, 1000), [0, 5500, -4500, 0], "ri ron");
+// 1 han 30 fu non-dealer tsumo, 300/500, one honba
+eq(settleHand("riichi", {kind:"tsumo", w:3, f:1, fu:30, dealer:0, honba:1}, 0), [-600, -400, -400, 1400], "ri tsumo");
+// dealer tsumo 2 han 30 fu: 1000 all
+eq(settleHand("riichi", {kind:"tsumo", w:0, f:2, fu:30, dealer:0, honba:0}, 0), [3000, -1000, -1000, -1000], "ri dealer tsumo");
+// draw, one tenpai: 3000 from the three noten; riichi stick stays on the table
+eq(settleHand("riichi", {kind:"draw", tenpai:[2], riichi:[2], dealer:0}, 0), [-1000, -1000, 2000, -1000], "ri draw");
+// double ron off seat 3 by seats 1 and 0: seat 0 is nearer, so it takes the honba and the stick
+eq(settleHand("riichi", {kind:"ron", w:1, f:1, fu:30, w2:0, f2:2, fu2:30, from:3, dealer:2, honba:1}, 1000), [3300, 1000, 0, -3300], "ri double ron");
+// pao tsumo: the liable seat pays the whole yakuman plus honba; pao ron: half each, honba on the liable seat
+eq(settleHand("riichi", {kind:"tsumo", w:1, f:13, dealer:0, honba:1, pao:2}, 0), [0, 32300, -32300, 0], "ri pao tsumo");
+eq(settleHand("riichi", {kind:"ron", w:1, f:13, from:3, dealer:0, honba:1, pao:2}, 0), [0, 32300, -16300, -16000], "ri pao ron");
+// chombo: reverse mangan; dealer pays 4000 all, a non-dealer 4000 to the dealer and 2000 to the others
+eq(settleHand("riichi", {kind:"chombo", w:0, dealer:0}, 0), [-12000, 4000, 4000, 4000], "ri dealer chombo");
+eq(settleHand("riichi", {kind:"chombo", w:2, dealer:0}, 0), [4000, 2000, -8000, 2000], "ri chombo");
+eq(settleHand("hk", {kind:"chombo", w:1, f:3}, 0), [8, -24, 8, 8], "hk chombo");
+eq(nextDeal({kind:"chombo", w:2, dealer:1, honba:2}), {dealer:1, honba:2}, "chombo replays the hand");
+eq(nextDeal({kind:"ron", w:3, w2:1, dealer:1, honba:0}), {dealer:1, honba:1}, "dealer in a double ron repeats");
+// double yakuman ron, non-dealer: 64000; with pao the liable seat pays half of one, the discarder the rest
+eq(settleHand("riichi", {kind:"ron", w:1, f:26, from:3, dealer:0, honba:0}, 0), [0, 64000, 0, -64000], "ri double yakuman");
+eq(settleHand("riichi", {kind:"ron", w:1, f:26, from:3, dealer:0, honba:0, pao:2}, 0), [0, 64000, -16000, -48000], "ri pao double yakuman ron");
+eq(settleHand("riichi", {kind:"tsumo", w:1, f:26, dealer:0, honba:0, pao:2}, 0), [-16000, 64000, -40000, -8000], "ri pao double yakuman tsumo");
+// abortive draw: only the riichi sticks move; the dealer repeats with a honba more
+eq(settleHand("riichi", {kind:"abort", riichi:[0, 1, 2, 3], dealer:1, honba:0}, 0), [-1000, -1000, -1000, -1000], "ri four riichi");
+eq(nextDeal({kind:"abort", dealer:1, honba:0}), {dealer:1, honba:1}, "abortive draw repeats");
+// final scores, 30000 return, uma 10-20: oka and the sticks go to first; a tie goes to the earlier seat
+eq(finalScores([35000, 30000, 20000, 14000], 1000, 30000, "10-20").map(x => x.score), [46, 10, -20, -36], "uma and oka");
+eq(finalScores([25000, 25000, 25000, 25000], 0, 25000, "0").map(x => x.place), [1, 2, 3, 4], "ties by seat");
+eq(finalScores([40000, 30000, 20000, 10000], 0, 30000, "10-20").reduce((a, x) => a + x.score, 0), 0, "finals sum to zero");
+// the working says what the payment was made of
+const why = [];
+settleHand("riichi", {kind:"ron", w:1, from:2, f:3, fu:30, dealer:0, honba:2, riichi:[1]}, 1000, why);
+const said = JSON.stringify(why);
+ok(said.includes("30,5,960") && said.includes(",3900]") && said.includes('{} honba: +300 per honba, {} in all",2,600]') && said.includes('{"p":1},2000]'), "working: " + said);
+eq(nextDeal({kind:"ron", w:1, dealer:0, honba:3}), {dealer:1, honba:0}, "non-dealer win passes the deal");
+eq(nextDeal({kind:"tsumo", w:0, dealer:0, honba:0}), {dealer:0, honba:1}, "dealer win repeats");
+eq(nextDeal({kind:"draw", tenpai:[1], dealer:3, honba:1}), {dealer:0, honba:2}, "noten dealer passes, honba stays");
+}
+
 console.log("selfcheck: all assertions passed (" + wins + " wins, " + washouts
   + " washouts in 25 rounds at a " + RULES.min + "-faan minimum; riichi: 3 hanchans, " + rHands + " hands, "
   + rWins + " wins (" + rRons + " ron), " + rRiichi + " riichi, draws " + JSON.stringify(rDraws) + ")");
@@ -516,3 +563,18 @@ console.log("selfcheck: all assertions passed (" + wins + " wins, " + washouts
 
 vm.createContext(context);
 vm.runInContext(bodies.join("\n") + "\n" + TESTS, context, { timeout: 120000 });
+
+// the score sheet's PDF writer: every xref offset must land on its object
+{
+  const src = read("score.html").match(/\/\* pdf:start \*\/([\s\S]*?)\/\* pdf:end \*\//)[1];
+  const pdfText = new Function(src + "; return pdfText;")();
+  const lines = Array.from({ length: 130 }, (_, i) => "row " + i + " (paren) back\\slash 東 é");
+  const pdf = Buffer.from(pdfText(lines)).toString("latin1");
+  const xref = +pdf.match(/startxref\n(\d+)/)[1];
+  assert.ok(pdf.startsWith("xref", xref), "startxref points at xref");
+  const offs = [...pdf.slice(xref).matchAll(/^(\d{10}) 00000 n $/gm)].map(m => +m[1]);
+  assert.equal(offs.length, 2 + 1 + 3 * 2, "catalog, pages, font and three pages of two objects");
+  offs.forEach((o, i) => assert.ok(pdf.startsWith((i + 1) + " 0 obj", o), "object " + (i + 1) + " at its offset"));
+  assert.ok(pdf.includes("(row 0 \\(paren\\) back\\\\slash ? \xe9) Tj"), "escaping and the latin-1 fallback");
+  console.log("selfcheck: score sheet PDF ok");
+}

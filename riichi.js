@@ -87,6 +87,102 @@ function rPay(base,dealer,tsumo){
   return dealer?{all:up100(base*2)}:{dealer:up100(base*2),other:up100(base)};
 }
 
+/* ── the score sheet: one recorded hand -> each seat's change ───────────────
+   h = {kind:"ron"|"tsumo"|"draw"|"abort"|"chombo", w winner (or offender),
+        from discarder, f faan or han (13 a yakuman, 26 a double, 39 a triple),
+        fu, dealer, honba, riichi:[seats], tenpai:[seats]}, optionally w2/f2/fu2
+   for a double ron and pao for the seat liable for a yakuman; pot is the riichi
+   sticks already on the table. Hong Kong ignores dealer, honba, sticks, tenpai,
+   double ron and pao. If why is an array, it collects the working as
+   [template, ...args] for tf(), where an arg {p:seat} stands for a player. */
+function settleHand(v,h,pot,why){
+  const d=[0,0,0,0], others=s=>[0,1,2,3].filter(x=>x!==s), pay=(a,b,n)=>{d[a]-=n;d[b]+=n};
+  const note=function(){if(why)why.push([].slice.call(arguments))}, P=s=>({p:s});
+  if(v==="hk"){
+    const u=units(h.f), cap=h.f>=RULES.limit?["(the {}-faan limit)",RULES.limit]:null;
+    if(h.kind==="ron"){pay(h.from,h.w,u);note("{} faan is {} units; the discarder, {}, pays it alone",h.f,u,P(h.from))}
+    if(h.kind==="tsumo"){others(h.w).forEach(s=>pay(s,h.w,u));note("{} faan is {} units; self-drawn, so each of the other three pays it",h.f,u)}
+    /* a false win: the offender pays everyone as if they had self-drawn it */
+    if(h.kind==="chombo"){others(h.w).forEach(s=>pay(h.w,s,u));note("A false win: {} pays {} faan, {} units, to each of the other three",P(h.w),h.f,u)}
+    if(h.kind==="draw") note("A draw: nobody pays");
+    if(cap&&h.kind!=="draw") note.apply(null,cap);
+    return d;
+  }
+  /* chombo: a reverse mangan, and the hand is replayed */
+  if(h.kind==="chombo"){
+    others(h.w).forEach(s=>pay(h.w,s,h.w===h.dealer||s===h.dealer?4000:2000));
+    note(h.w===h.dealer?"A false win by the dealer: a reverse mangan, 4,000 to each player":"A false win: a reverse mangan, 4,000 to the dealer and 2,000 to each of the others");
+    note("The hand is replayed with the same dealer and honba");
+    return d;
+  }
+  (h.riichi||[]).forEach(s=>{d[s]-=1000;pot+=1000;note("{} declared riichi: a 1,000 stick onto the table",P(s))});
+  /* triple ron, nine terminals, four winds, four riichi, four kongs: nobody pays */
+  if(h.kind==="abort"){note("An abortive draw: nobody pays, the sticks stay on the table and the dealer repeats");return d;}
+  if(h.kind==="draw"){
+    const T=h.tenpai||[];
+    if(T.length%4){
+      [0,1,2,3].forEach(s=>{d[s]+=T.indexOf(s)>=0?3000/T.length:-3000/(4-T.length)});
+      note("A draw: the noten players pay 3,000 between them ({} each) to the tenpai players ({} each)",3000/(4-T.length),3000/T.length);
+    }else note(T.length?"A draw with everyone tenpai: nobody pays":"A draw with nobody tenpai: nobody pays");
+    return d;
+  }
+  /* a double ron pays both; honba and the sticks go to the winner nearest the discarder's turn */
+  const wins=[{w:h.w,f:h.f,fu:h.fu,pao:h.pao}];
+  if(h.kind==="ron"&&h.w2!=null) wins.push({w:h.w2,f:h.f2,fu:h.fu2});
+  wins.sort((a,b)=>(a.w-h.from+4)%4-(b.w-h.from+4)%4);
+  if(wins.length>1) note("Double ron: both are paid; {} is nearer the discarder's turn, so takes the honba and the sticks",P(wins[0].w));
+  wins.forEach((x,k)=>{
+    const hb=k?0:h.honba||0, dw=x.w===h.dealer, ym=Math.floor(x.f/13), tsumo=h.kind==="tsumo";
+    const usual=(p,hb)=>{
+      if(!tsumo) pay(h.from,x.w,p.ron+300*hb);
+      else others(x.w).forEach(s=>pay(s,x.w,(p.all||(s===h.dealer?p.dealer:p.other))+100*hb));
+      if(!tsumo) note(dw?"Dealer ron: {} pays 6× base, rounded up to 100: {}":"Ron: {} pays 4× base, rounded up to 100: {}",P(h.from),p.ron);
+      else if(dw) note("Dealer tsumo: each pays 2× base, rounded up: {}",p.all);
+      else note("Tsumo: the dealer pays 2× base, {}; the others base, {}; rounded up to 100",p.dealer,p.other);
+      if(hb) note(tsumo?"{} honba: +100 a payer per honba, {} in all":"{} honba: +300 per honba, {} in all",hb,300*hb);
+    };
+    const r=rBase(x.f,x.fu,ym);
+    if(ym||r.label) note("{}: {}, a base of {}",P(x.w),ym?(ym>1?ym+"× yakuman":"Yakuman"):r.label,r.base);
+    else note("{}: {} han {} fu, base = fu × 2^(han+2) = {} × 2^{} = {}",P(x.w),x.f,x.fu,x.fu,x.f+2,r.base);
+    /* pao: the liable seat pays one yakuman whole on tsumo, half of it on ron,
+       plus the honba; any further yakuman are paid as usual */
+    if(x.pao!=null&&ym){
+      const one=rPay(8000,dw,false).ron, rest=ym-1;
+      if(tsumo){pay(x.pao,x.w,one+300*hb);note("Pao: {} is liable and pays the whole yakuman, {}, plus the honba",P(x.pao),one)}
+      else{pay(x.pao,x.w,one/2+300*hb);pay(h.from,x.w,one/2);note("Pao: {} is liable for half the yakuman, {}, plus the honba; {} pays the other half",P(x.pao),one/2,P(h.from))}
+      if(rest){note("The other {} yakuman are paid as usual",rest);usual(rPay(8000*rest,dw,tsumo),0)}
+      return;
+    }
+    usual(rPay(r.base,dw,tsumo),hb);
+  });
+  d[wins[0].w]+=pot;
+  if(pot) note("{} takes the riichi sticks on the table: {}",P(wins[0].w),pot);
+  return d;
+}
+/* who deals next and on how many honba: the dealer keeps the seat on a win or a
+   tenpai draw; any draw adds a honba, a non-dealer win clears them; a chombo
+   replays the hand as it was */
+function nextDeal(last){
+  if(!last) return {dealer:0,honba:0};
+  if(last.kind==="chombo") return {dealer:last.dealer,honba:last.honba||0};
+  if(last.kind==="abort") return {dealer:last.dealer,honba:(last.honba||0)+1};
+  const stay=last.kind==="draw"?(last.tenpai||[]).indexOf(last.dealer)>=0:last.w===last.dealer||last.w2===last.dealer;
+  return {dealer:stay?last.dealer:(last.dealer+1)%4, honba:stay||last.kind==="draw"?(last.honba||0)+1:0};
+}
+
+/* the end of a game, in thousands: points less the return score, plus the uma
+   for the placing; first place also takes the oka (what the return score
+   withheld from everyone) and any riichi sticks still on the table. Ties go
+   to the seat nearer the first dealer, as on Tenhou. */
+const UMA={"0":[0,0,0,0],"5-10":[10,5,-5,-10],"10-20":[20,10,-10,-20],"10-30":[30,10,-10,-30],"20-30":[30,20,-20,-30]};
+function finalScores(pts,pot,ret,uma){
+  const order=[0,1,2,3].sort((a,b)=>pts[b]-pts[a]||a-b), u=UMA[uma]||UMA["10-20"];
+  return pts.map((p,i)=>{
+    const r=order.indexOf(i), first=r===0;
+    return {place:r+1,score:Math.round((p-ret)/100)/10+u[r]+(first?(pot+(ret-R_RULES.start)*4)/1000:0)};
+  });
+}
+
 /* yaku, fu for one reading of a standard hand. sets carry {type,tiles,open};
    wait is ryanmen|kanchan|penchan|tanki|shanpon */
 function readStd(sets,pair,wait,menzen,ctx){

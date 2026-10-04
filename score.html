@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Score Sheet — Learn Mahjong</title>
+<meta name="description" content="Keep score at a real mahjong table: record each hand and the sheet works out who pays whom, for Hong Kong or Riichi.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%80%84</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..900&family=Spline+Sans:wght@300..700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4EDDD; --paper-2:#FBF7EC; --line:#DDD1B6;
+  --ink:#14231F; --ink-2:#55655E; --ink-3:#8A968F;
+  --felt:#0C4437; --felt-2:#062B22;
+  --red:#B93B2C; --jade:#1B7A57; --gold:#A9781F;
+  --zh:"Noto Serif TC","Songti TC","PingFang TC","Microsoft JhengHei",serif;
+  --display:"Fraunces",Georgia,serif;
+  --body:"Spline Sans",system-ui,sans-serif;
+  --wrap:min(880px,100% - 2rem);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.55 var(--body);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--display);font-variation-settings:'SOFT' 0,'WONK' 1;font-weight:700;line-height:1.1;margin:0}
+p{margin:0 0 1em}
+a{color:inherit}
+.wrap{width:var(--wrap);margin-inline:auto}
+.zh{font-family:var(--zh);font-weight:500}
+nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:.6rem;align-items:center;height:3.4rem}
+nav b{font-family:var(--display);font-size:1.05rem;margin-right:auto;white-space:nowrap}
+nav b a{text-decoration:none}
+select.lang{flex:none;font:inherit;font-size:.8rem;color:var(--ink-2);background:#fff;border:1px solid var(--line);border-radius:99px;padding:.28rem .6rem;cursor:pointer}
+main{padding:2.4rem 0 4rem}
+.mark{font-family:var(--zh);font-size:1.5rem;color:var(--gold);display:block;margin-bottom:.3rem}
+h2{font-size:clamp(1.8rem,4vw,2.5rem);letter-spacing:-.02em;margin-bottom:.6rem}
+h3{font-size:1.1rem;font-variation-settings:'WONK' 0;margin-bottom:.6rem}
+.sub{color:var(--ink-2);max-width:60ch}
+.card{background:var(--paper-2);border:1px solid var(--line);border-radius:.7rem;padding:1.1rem 1.2rem;margin-top:1.3rem}
+.fields{display:grid;gap:.7rem;grid-template-columns:repeat(auto-fill,minmax(10.5rem,1fr))}
+label.f{display:flex;flex-direction:column;gap:.2rem;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+input,select{font:inherit;font-size:.95rem;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:.4rem;padding:.4rem .5rem;min-width:0}
+input:focus-visible,select:focus-visible{outline:2.5px solid var(--gold);outline-offset:1px}
+.checks{display:flex;flex-wrap:wrap;gap:.3rem 1rem;font-size:.92rem;margin-top:.8rem}
+.checks b{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);width:100%}
+.checks label{display:flex;gap:.35rem;align-items:center}
+.checks input{accent-color:var(--felt)}
+.acts{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin-top:1rem}
+.btn{font:inherit;font-weight:600;padding:.55rem 1.3rem;border-radius:99px;border:0;cursor:pointer;background:var(--felt);color:#fff}
+.btn:hover{background:var(--felt-2)}
+.ghost{font:inherit;font-size:.85rem;padding:.4rem .9rem;border-radius:99px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--ink)}
+.ghost:hover{border-color:var(--ink-2)}
+.ghost.danger:hover{border-color:var(--red);color:var(--red)}
+.msg{font-size:.9rem;color:var(--ink-2)}
+.msg.bad{color:var(--red)}
+.sess{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:center;padding:.8rem 0;border-bottom:1px solid var(--line)}
+.sess:last-child{border-bottom:0}
+.sess .who{flex:1 1 14rem;min-width:0}
+.sess .who b{display:block}
+.sess .who span{font-size:.85rem;color:var(--ink-2)}
+.empty{color:var(--ink-3);font-size:.92rem;margin:0}
+.stand{display:grid;gap:.6rem;grid-template-columns:repeat(2,1fr);margin-top:1.2rem}
+@media(min-width:640px){.stand{grid-template-columns:repeat(4,1fr)}}
+.seat{background:var(--paper-2);border:1px solid var(--line);border-radius:.6rem;padding:.7rem .85rem;min-width:0}
+.seat .nm{font-size:.86rem;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seat .pt{font-family:var(--display);font-size:1.6rem;font-variant-numeric:tabular-nums}
+.seat.lead{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+.tag{display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--red);border-radius:.25rem;padding:.05rem .3rem;margin-left:.3rem;vertical-align:.1em}
+.meta{font-size:.88rem;color:var(--ink-2);margin-top:.6rem}
+.seat .mo{font-size:.86rem;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.money{display:flex;flex-wrap:wrap;gap:.4rem .6rem;align-items:center;font-size:.88rem;color:var(--ink-2);margin-top:.5rem}
+.money input{width:7rem;font-size:.88rem;padding:.25rem .45rem}
+.money input#mcur{width:4.5rem}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{text-align:right;padding:.45rem .5rem;border-bottom:1px solid var(--line);white-space:nowrap}
+th:nth-child(-n+2),td:nth-child(-n+2){text-align:left}
+th{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600;max-width:7rem;overflow:hidden;text-overflow:ellipsis}
+td{font-variant-numeric:tabular-nums}
+td.up{color:var(--jade);font-weight:600} td.dn{color:var(--red)}
+td:nth-child(2){white-space:normal;color:var(--ink-2)}
+tr.why td{border-bottom:1px solid var(--line);padding-top:0;font-size:.8rem;color:var(--ink-3);text-align:left;white-space:normal}
+tr.hand td{border-bottom:0}
+details.card summary{cursor:pointer;font-family:var(--display);font-weight:700;font-size:1.1rem}
+details.card ul{margin:.7rem 0 0;padding-left:1.1rem;color:var(--ink-2);font-size:.92rem}
+details.card li{margin:.3rem 0}
+details.card h4{margin:1rem 0 0;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <b><a href="./">Learn Mahjong</a></b>
+  <span id="langslot"></span>
+</div></nav>
+
+<main class="wrap">
+  <div id="listview">
+    <span class="mark">記分</span>
+    <h2>Score sheet</h2>
+    <p class="sub">For a real table. Start a session, record each hand as it ends, and the sheet works out who pays whom. Sessions stay in this browser.</p>
+
+    <form class="card" id="newform" autocomplete="off">
+      <h3>New session</h3>
+      <div class="fields">
+        <label class="f">Name<input id="nname" maxlength="60" placeholder="Friday night"></label>
+        <label class="f">Game<select id="nvar"><option value="hk">Hong Kong 香港</option><option value="riichi">Riichi 立直</option></select></label>
+      </div>
+      <div class="fields" style="margin-top:.7rem">
+        <label class="f">East<input id="np0" maxlength="30" required></label>
+        <label class="f">South<input id="np1" maxlength="30" required></label>
+        <label class="f">West<input id="np2" maxlength="30" required></label>
+        <label class="f">North<input id="np3" maxlength="30" required></label>
+      </div>
+      <div class="acts"><button class="btn">Start session</button></div>
+    </form>
+
+    <div class="card">
+      <h3>Sessions</h3>
+      <div id="sesslist"></div>
+    </div>
+  </div>
+
+  <div id="sheetview" hidden>
+    <div class="acts" style="margin-top:0"><button class="ghost" id="backbtn">← All sessions</button><button class="ghost" id="sharebtn" type="button">Share PDF</button></div>
+    <h2 id="stitle" style="margin-top:1rem"></h2>
+    <p class="sub" id="ssub" style="margin:0"></p>
+    <div class="stand" id="stand"></div>
+    <p class="meta" id="smeta"></p>
+    <div class="money"><label for="mrate">Money</label><input id="mcur" maxlength="8" placeholder="Rp" aria-label="Currency">
+      <input id="mrate" type="number" min="0" step="any" placeholder="off" aria-label="Rate"><span id="mper"></span></div>
+    <div class="money" id="endrow"><label for="mret">Return</label><select id="mret"><option value="25000">25,000 — no oka</option><option value="30000">30,000</option></select>
+      <label for="muma">Uma</label><select id="muma"><option value="0">none</option><option value="5-10">5-10</option><option value="10-20">10-20</option><option value="10-30">10-30</option><option value="20-30">20-30</option></select></div>
+
+    <form class="card" id="handform" autocomplete="off">
+      <h3>Record a hand</h3>
+      <div class="fields">
+        <label class="f">Result<select id="hkind"><option value="ron">Won on a discard</option><option value="tsumo">Self-drawn</option><option value="draw">Draw</option><option value="abort" data-ri>Abortive draw</option><option value="chombo">Penalty (chombo)</option></select></label>
+        <label class="f" id="lw"><span id="hwlab">Winner</span><select id="hw"></select></label>
+        <label class="f" id="lfrom">Discarder<select id="hfrom"></select></label>
+        <label class="f" id="lf"><span id="hflab">Faan</span><select id="hf"></select></label>
+        <label class="f" id="lfu" data-ri>Fu<select id="hfu"></select></label>
+        <label class="f" id="lw2" data-ri>Second winner<select id="hw2"></select></label>
+        <label class="f" id="lf2" data-ri>Second han<select id="hf2"></select></label>
+        <label class="f" id="lfu2" data-ri>Second fu<select id="hfu2"></select></label>
+        <label class="f" id="lpao" data-ri>Pao — liable<select id="hpao"></select></label>
+        <label class="f" data-ri>Dealer<select id="hdealer"></select></label>
+        <label class="f" data-ri>Honba<input id="hhonba" type="number" min="0" max="99" step="1"></label>
+      </div>
+      <div class="checks" id="hriichi" data-ri><b>Declared riichi</b></div>
+      <div class="checks" id="htenpai" data-ri><b>Tenpai at the draw</b></div>
+      <div class="acts"><button class="btn">Add hand</button><span class="msg" id="hmsg"></span></div>
+    </form>
+
+    <details class="card" id="explain">
+      <summary>How scoring works</summary>
+      <div data-sv="hk">
+        <h4>Faan to units</h4>
+        <ul><li id="xunits"></li>
+          <li>Won on a discard: the discarder pays the units alone.</li>
+          <li>Self-drawn: each of the other three pays the units.</li>
+          <li>A penalty (chombo): the offender pays the chosen faan, in units, to each of the other three.</li>
+          <li>Money: each unit is worth the rate you set.</li></ul>
+      </div>
+      <div data-sv="riichi">
+        <h4>Points for a win</h4>
+        <ul><li>Base points are fu × 2^(han + 2).</li>
+          <li>Limits: mangan 2,000 base (5 han, or a base over 2,000), haneman 3,000 (6–7 han), baiman 4,000 (8–10), sanbaiman 6,000 (11–12), yakuman 8,000 (13 han, or each yakuman).</li>
+          <li>Ron: the discarder pays 4× base, or 6× when the winner is the dealer.</li>
+          <li>Tsumo: the dealer pays 2× base and the others 1×; when the dealer wins, everyone pays 2×.</li>
+          <li>Every payment rounds up to the next 100.</li></ul>
+        <h4>Honba and riichi sticks</h4>
+        <ul><li>Each honba adds 300 to a ron, or 100 from each payer on a tsumo.</li>
+          <li>Riichi costs a 1,000 stick. The next winner takes every stick on the table; after a draw they carry over.</li>
+          <li>The dealer keeps the seat after winning or being tenpai at a draw, and a honba is added. A non-dealer win passes the deal and clears the honba.</li></ul>
+        <h4>Draws and the rest</h4>
+        <ul><li>Draw: the noten players pay 3,000 between them to the tenpai players. All or none tenpai: nobody pays.</li>
+          <li>Abortive draw (triple ron, nine terminals, four winds, four riichi, four kongs): nobody pays, the dealer repeats and a honba is added.</li>
+          <li>Double ron: both winners are paid; the one nearer the discarder's turn takes the honba and the sticks.</li>
+          <li>Pao: the player who fed the last set of big three dragons or big four winds pays that yakuman whole on a tsumo, or half of it on a ron.</li>
+          <li>Chombo: a reverse mangan. A dealer pays 4,000 to everyone; anyone else pays 4,000 to the dealer and 2,000 to the others. The hand is replayed.</li></ul>
+        <h4>Final score</h4>
+        <ul><li>Final = (points − return) ÷ 1,000 + uma for the placing.</li>
+          <li>First place also takes the oka — what the return score held back from everyone, (return − 25,000) × 4 — and any sticks left on the table.</li>
+          <li>Ties go to the seat nearer the first dealer.</li>
+          <li>Money: each point of final score is worth the rate you set.</li></ul>
+      </div>
+    </details>
+
+    <div class="card">
+      <h3>Hands</h3>
+      <div class="tw"><table><thead id="lhead"></thead><tbody id="lbody"></tbody></table></div>
+      <p class="empty" id="lempty">No hands yet.</p>
+      <div class="acts"><button class="ghost" id="undobtn" type="button">Undo last hand</button></div>
+    </div>
+  </div>
+</main>
+
+<script src="mahjong.js"></script>
+<script src="riichi.js"></script>
+<script src="i18n.js"></script>
+<script>
+"use strict";
+el("langslot").replaceWith(langPicker());
+
+/* ── storage: {list:[session], cur:id}. A hand keeps the deltas worked out when
+   it was entered, so changing house rules later never rewrites a past sheet. ── */
+const KEY="mj-scores";
+let S={list:[],cur:null};
+try{const j=JSON.parse(localStorage.getItem(KEY)||"null"); if(j&&Array.isArray(j.list)) S=j;}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){msg(t("Could not save — storage is full or blocked."),true)}};
+const cur=()=>S.list.find(s=>s.id===S.cur);
+const START={hk:0,riichi:R_RULES.start};
+const totals=s=>s.hands.reduce((a,h)=>a.map((x,i)=>x+h.d[i]),[0,1,2,3].map(()=>START[s.v]));
+const potOf=s=>4*START[s.v]-totals(s).reduce((a,b)=>a+b,0);
+const fmt=n=>n.toLocaleString(LANG);
+const sgn=n=>n>0?"+"+fmt(n):fmt(n);
+/* money is optional and only a display rate: per unit in Hong Kong, per 1,000 points in Riichi */
+const PER={hk:1,riichi:1000};
+/* Riichi: the end-of-game score in thousands, if the game ended now */
+const finals=s=>finalScores(totals(s),potOf(s),s.ret||30000,s.uma||"10-20");
+const cash=n=>n.toLocaleString(LANG,{maximumFractionDigits:2});
+const money=(s,i,tot)=>s.rate>0?(s.cur?s.cur+" ":"")+cash(s.v==="riichi"?finals(s)[i].score*s.rate:tot[i]*s.rate):"";
+/* one line of a hand's working: a template for tf(), {p:seat} for a player */
+const say=(s,n)=>tf.apply(null,[n[0]].concat(n.slice(1).map(a=>a&&a.p!=null?s.players[a.p]:typeof a==="number"?fmt(a):a)));
+const SEATS=()=>[t("East"),t("South"),t("West"),t("North")];
+const opt=(v,txt)=>{const o=document.createElement("option");o.value=v;o.textContent=txt;return o;};
+
+/* ── session list ───────────────────────────────────────────── */
+el("nvar").value=VARIANT;
+el("newform").onsubmit=e=>{
+  e.preventDefault();
+  const players=[0,1,2,3].map(i=>el("np"+i).value.trim());
+  if(players.some(p=>!p)) return;
+  const v=el("nvar").value==="riichi"?"riichi":"hk";
+  const s={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    name:el("nname").value.trim()||new Date().toLocaleDateString(LANG),v:v,players:players,made:Date.now(),hands:[]};
+  S.list.unshift(s); S.cur=s.id; save(); e.target.reset(); el("nvar").value=VARIANT; show();
+};
+function renderList(){
+  const box=el("sesslist"); box.replaceChildren();
+  if(!S.list.length){const p=document.createElement("p");p.className="empty";p.textContent=t("No sessions yet.");box.append(p);return;}
+  S.list.forEach(s=>{
+    const row=document.createElement("div");row.className="sess";
+    const who=document.createElement("div");who.className="who";
+    const b=document.createElement("b");b.textContent=s.name;
+    const tot=totals(s), lead=tot.indexOf(Math.max.apply(null,tot));
+    const sp=document.createElement("span");
+    sp.textContent=(s.v==="riichi"?"Riichi":"Hong Kong")+" · "+tf("{} hands",s.hands.length)+" · "+s.players.join(", ")
+      +(s.hands.length?" · "+tf("{} leads",s.players[lead]):"");
+    who.append(b,sp);
+    const open=document.createElement("button");open.className="ghost";open.type="button";open.textContent=t("Open sheet");
+    open.onclick=()=>{S.cur=s.id;save();show()};
+    const del=document.createElement("button");del.className="ghost danger";del.type="button";del.textContent=t("Delete");
+    del.onclick=()=>{
+      if(del.dataset.armed){S.list=S.list.filter(x=>x!==s);save();renderList();return;}
+      del.dataset.armed=1;del.textContent=t("Delete — sure?");
+    };
+    row.append(who,open,del);box.append(row);
+  });
+}
+
+/* ── one session ────────────────────────────────────────────── */
+el("mcur").onchange=el("mrate").onchange=el("mret").onchange=el("muma").onchange=()=>{
+  const s=cur(); if(!s) return;
+  const r=parseFloat(el("mrate").value);
+  s.rate=isFinite(r)&&r>0?r:0; s.cur=el("mcur").value.trim().slice(0,8);
+  s.ret=+el("mret").value===25000?25000:30000; s.uma=UMA[el("muma").value]?el("muma").value:"10-20";
+  save(); renderSheet();
+};
+el("backbtn").onclick=()=>{S.cur=null;save();show()};
+el("undobtn").onclick=()=>{const s=cur();if(s&&s.hands.length){s.hands.pop();save();renderSheet()}};
+const msg=(m,bad)=>{el("hmsg").textContent=m||"";el("hmsg").className="msg"+(bad?" bad":"")};
+
+function fillForm(s){
+  const RI=s.v==="riichi";
+  document.querySelectorAll("#handform [data-ri]").forEach(n=>{n.hidden=!RI});
+  el("hkind").querySelector("[data-ri]").disabled=!RI;
+  if(!RI&&el("hkind").value==="abort") el("hkind").value="ron";
+  el("hflab").textContent=RI?"Han":"Faan";
+  ["hw","hfrom","hdealer"].forEach(id=>el(id).replaceChildren(...s.players.map((p,i)=>opt(i,p))));
+  ["hw2","hpao"].forEach(id=>el(id).replaceChildren(opt("",t("— none")),...s.players.map((p,i)=>opt(i,p))));
+  el("hfrom").value=1;
+  const fs=RI?[1,2,3,4,5,6,7,8,9,10,11,12,13,26,39]:[];
+  if(!RI) for(let f=Math.max(RULES.min,1);f<=RULES.limit;f++) fs.push(f);
+  ["hf","hf2"].forEach(id=>el(id).replaceChildren(...fs.map(f=>opt(f,RI&&f>=13?t(["13+ · yakuman","Double yakuman","Triple yakuman"][f/13-1]):!RI&&f===RULES.limit?f+"+":String(f)))));
+  ["hfu","hfu2"].forEach(id=>{el(id).replaceChildren(...[20,25,30,40,50,60,70,80,90,100,110].map(f=>opt(f,f)));el(id).value=30});
+  const nd=nextDeal(s.hands[s.hands.length-1]);
+  el("hdealer").value=nd.dealer; el("hhonba").value=nd.honba;
+  ["hriichi","htenpai"].forEach(id=>{
+    const box=el(id); box.replaceChildren(box.firstElementChild);
+    s.players.forEach((p,i)=>{
+      const l=document.createElement("label"),c=document.createElement("input");
+      c.type="checkbox";c.value=i;l.append(c,document.createTextNode(p));box.append(l);
+    });
+  });
+  sync();
+}
+/* show only the fields the chosen result needs */
+function sync(){
+  const s=cur(); if(!s) return;
+  const RI=s.v==="riichi", k=el("hkind").value, win=k==="ron"||k==="tsumo", two=RI&&k==="ron"&&el("hw2").value!=="";
+  el("hwlab").textContent=t(k==="chombo"?"Offender":"Winner");
+  el("lw").hidden=k==="draw"||k==="abort";
+  el("lf").hidden=!(win||k==="chombo"&&!RI);
+  el("lfrom").hidden=k!=="ron";
+  el("lfu").hidden=!RI||!win||+el("hf").value>=5;
+  el("lw2").hidden=!RI||k!=="ron";
+  el("lf2").hidden=!two;
+  el("lfu2").hidden=!two||+el("hf2").value>=5;
+  el("lpao").hidden=!RI||!win||+el("hf").value<13;
+  el("hriichi").hidden=!RI||k==="chombo";
+  el("htenpai").hidden=!RI||k!=="draw";
+  msg();
+}
+["hkind","hf","hw2","hf2"].forEach(id=>{el(id).onchange=sync});
+
+const checked=id=>[].map.call(el(id).querySelectorAll("input:checked"),c=>+c.value);
+el("handform").onsubmit=e=>{
+  e.preventDefault();
+  const s=cur(); if(!s) return;
+  const RI=s.v==="riichi", k=el("hkind").value;
+  const h={kind:k};
+  const on=id=>!el(id).hidden;
+  if(on("lw")) h.w=+el("hw").value;
+  if(on("lf")) h.f=+el("hf").value;
+  if(k==="ron"){h.from=+el("hfrom").value; if(h.from===h.w) return msg(t("The winner can't be the discarder."),true);}
+  if(RI){
+    h.dealer=+el("hdealer").value;
+    h.honba=Math.max(0,Math.min(99,Math.floor(+el("hhonba").value)||0));
+    h.riichi=k==="chombo"?[]:checked("hriichi");
+    if(k==="draw") h.tenpai=checked("htenpai");
+    if(on("lf")) h.fu=on("lfu")?+el("hfu").value:30;
+    if(on("lf2")){
+      h.w2=+el("hw2").value; h.f2=+el("hf2").value; h.fu2=on("lfu2")?+el("hfu2").value:30;
+      if(h.w2===h.w||h.w2===h.from) return msg(t("The second winner must be a third player."),true);
+    }
+    if(on("lpao")&&el("hpao").value!==""){
+      h.pao=+el("hpao").value;
+      if(h.pao===h.w) return msg(t("The winner can't be liable for their own hand."),true);
+    }
+  }
+  h.why=[]; h.d=settleHand(s.v,h,RI?potOf(s):0,h.why);
+  s.hands.push(h); save(); renderSheet();
+  msg(t("Added.")+" "+s.players.map((p,i)=>h.d[i]?p+" "+sgn(h.d[i]):"").filter(Boolean).join(", "));
+};
+
+function describe(s,h){
+  const P=s.players, RI=s.v==="riichi";
+  if(h.kind==="draw") return t("Draw")+(RI&&h.tenpai.length?" · "+tf("tenpai: {}",h.tenpai.map(i=>P[i]).join(", ")):"");
+  if(h.kind==="abort") return t("Abortive draw");
+  const val=(f,fu)=>RI?(f>=26?tf("{}× yakuman",f/13):f>=13?t("yakuman"):f>=5?f+" han":f+" han "+fu+" fu"):f+" faan";
+  if(h.kind==="chombo") return tf("Chombo: {}",P[h.w])+(RI?"":" · "+val(h.f));
+  if(h.w2!=null) return tf("{} from {}",P[h.w]+" & "+P[h.w2],P[h.from])+" · "+val(h.f,h.fu)+" / "+val(h.f2,h.fu2);
+  return (h.kind==="ron"?tf("{} from {}",P[h.w],P[h.from]):tf("{} self-drawn",P[h.w]))+" · "+val(h.f,h.fu)
+    +(h.pao!=null?" · "+tf("pao: {}",P[h.pao]):"");
+}
+function renderSheet(){
+  const s=cur(), RI=s.v==="riichi", tot=totals(s), top=Math.max.apply(null,tot), F=RI&&finals(s);
+  el("stitle").textContent=s.name;
+  el("ssub").textContent=(RI?"Riichi":"Hong Kong")+" · "+new Date(s.made).toLocaleDateString(LANG)
+    +(RI?"":" · "+t("points are payout units"));
+  const nd=nextDeal(s.hands[s.hands.length-1]);
+  el("stand").replaceChildren(...s.players.map((p,i)=>{
+    const c=document.createElement("div");c.className="seat"+(s.hands.length&&tot[i]===top?" lead":"");
+    const n=document.createElement("div");n.className="nm";n.textContent=SEATS()[i]+" · "+p;
+    if(RI&&nd.dealer===i){const tg=document.createElement("span");tg.className="tag";tg.textContent=t("dealer");n.append(tg);}
+    const v=document.createElement("div");v.className="pt";v.textContent=RI?fmt(tot[i]):sgn(tot[i]);
+    const m=document.createElement("div");m.className="mo";
+    m.textContent=(RI?tf("#{} · final {}",F[i].place,(F[i].score>0?"+":"")+cash(F[i].score))+(s.rate>0?" · ":""):"")+money(s,i,tot);
+    c.append(n,v,m);return c;
+  }));
+  el("mcur").value=s.cur||""; el("mrate").value=s.rate>0?s.rate:"";
+  el("mper").textContent=t(RI?"per 1,000 points of final score":"per unit");
+  el("endrow").hidden=!RI;
+  document.querySelectorAll("[data-sv]").forEach(n=>{n.hidden=n.dataset.sv!==s.v});
+  if(!RI) el("xunits").textContent=UNITS.slice(Math.max(RULES.min,1),RULES.limit+1)
+    .map((u,i)=>tf("{} faan: {}",i+Math.max(RULES.min,1),u)).join(" · ")+" "+tf("(capped at {} faan)",RULES.limit); el("mret").value=s.ret||30000; el("muma").value=s.uma||"10-20";
+  el("smeta").textContent=RI?tf("Honba {} · riichi sticks on the table: {}",nd.honba,potOf(s)/1000):"";
+  const hr=document.createElement("tr");
+  ["#",t("Hand")].concat(s.players).forEach(x=>{const th=document.createElement("th");th.textContent=x;th.title=x;hr.append(th)});
+  el("lhead").replaceChildren(hr);
+  el("lbody").replaceChildren(...[].concat.apply([],s.hands.map((h,n)=>{
+    const tr=document.createElement("tr");tr.className="hand";
+    [String(n+1),describe(s,h)].concat(h.d.map(sgn)).forEach((x,j)=>{
+      const td=document.createElement("td");td.textContent=x;
+      if(j>1&&h.d[j-2]) td.className=h.d[j-2]>0?"up":"dn";
+      tr.append(td);
+    });
+    const wr=document.createElement("tr");wr.className="why";
+    const w0=document.createElement("td"),w1=document.createElement("td");w1.colSpan=5;
+    w1.textContent=(h.why||[]).map(x=>say(s,x)).join(" · ");
+    wr.append(w0,w1);
+    return [tr,wr];
+  }).reverse()));
+  el("lempty").hidden=s.hands.length>0;
+  el("undobtn").hidden=!s.hands.length;
+  fillForm(s);
+}
+
+function show(){
+  const s=cur();
+  el("listview").hidden=!!s; el("sheetview").hidden=!s;
+  if(s) renderSheet(); else renderList();
+  scrollTo(0,0);
+}
+/* ── share: a PDF file through the browser's share sheet, else a download ── */
+/* pdf:start */
+/* ponytail: built-in Courier, so only Latin-1 survives (CJK names print as ?);
+   embed a font, or load jsPDF, if that matters */
+function pdfText(lines){
+  const esc=x=>x.replace(/[^\x20-\x7e\xa0-\xff]/g,"?").replace(/[\\()]/g,"\\$&");
+  const objs=["<< /Type /Catalog /Pages 2 0 R >>",null,"<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>"], kids=[];
+  for(let i=0;i<lines.length||!kids.length;i+=62){
+    const st="BT /F1 9 Tf 12 TL 40 800 Td "+lines.slice(i,i+62).map(l=>"("+esc(l)+") Tj T*").join(" ")+" ET";
+    kids.push((objs.length+1)+" 0 R");
+    objs.push("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents "+(objs.length+2)+" 0 R >>",
+      "<< /Length "+st.length+" >>\nstream\n"+st+"\nendstream");
+  }
+  objs[1]="<< /Type /Pages /Kids ["+kids.join(" ")+"] /Count "+kids.length+" >>";
+  let out="%PDF-1.4\n"; const off=[];
+  objs.forEach((o,i)=>{off.push(out.length);out+=(i+1)+" 0 obj\n"+o+"\nendobj\n"});
+  const x=out.length;
+  out+="xref\n0 "+(objs.length+1)+"\n0000000000 65535 f \n"+off.map(o=>String(o).padStart(10,"0")+" 00000 n \n").join("")
+    +"trailer\n<< /Size "+(objs.length+1)+" /Root 1 0 R >>\nstartxref\n"+x+"\n%%EOF";
+  return Uint8Array.from(out,c=>c.charCodeAt(0));
+}
+/* pdf:end */
+function sheetLines(s){
+  const RI=s.v==="riichi", tot=totals(s), col=(x,n)=>String(x).slice(0,n).padStart(n);
+  const L=[s.name,(RI?"Riichi":"Hong Kong")+" · "+new Date(s.made).toLocaleDateString(LANG)
+    +(RI?" · "+tf("return {}, uma {}",fmt(s.ret||30000),s.uma||"10-20"):""),""];
+  s.players.forEach((p,i)=>L.push(SEATS()[i].padEnd(7)+p.slice(0,30).padEnd(31)+col(RI?fmt(tot[i]):sgn(tot[i]),10)+(RI?"   "+tf("#{} · final {}",finals(s)[i].place,(finals(s)[i].score>0?"+":"")+cash(finals(s)[i].score)):"")+(s.rate>0?"   "+money(s,i,tot):"")));
+  L.push("","#".padEnd(4)+t("Hand").padEnd(38)+s.players.map(p=>col(p,10)).join(" "));
+  s.hands.forEach((h,n)=>{
+    L.push(String(n+1).padEnd(4)+describe(s,h).slice(0,37).padEnd(38)+h.d.map(d=>col(d?sgn(d):"",10)).join(" "));
+    (h.why||[]).forEach(x=>{for(let w=say(s,x);w;w=w.slice(80)) L.push("      "+w.slice(0,80))});
+  });
+  return L;
+}
+el("sharebtn").onclick=async()=>{
+  const s=cur(); if(!s) return;
+  const f=new File([pdfText(sheetLines(s))],(s.name.replace(/[^\w-]+/g,"-").replace(/^-|-$/g,"")||"mahjong")+".pdf",{type:"application/pdf"});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){
+    try{await navigator.share({files:[f],title:s.name})}catch(e){/* cancelled */}
+    return;
+  }
+  const a=document.createElement("a");a.href=URL.createObjectURL(f);a.download=f.name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+
+applyI18n();
+show();
+</script>
+</body>
+</html>
